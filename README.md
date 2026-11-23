@@ -2,7 +2,7 @@
 
 A live [A2UI](https://a2ui.org) board next to your coding agents in the terminal. Agents, or any script, place widgets on it with shell commands: progress, results, charts and questions. Each widget gets an id, which the agent uses to update or remove it, and the user's answers come back as JSON.
 
-> **Status:** early development. Milestones M1 (local rendering with `a2ui-term demo`), M2 (`serve`, `send`, `ask`, `close`) and M3 (the widget board with `add`, `update`, `set`, `remove`, `list`) are implemented. The package is not on npm yet. The design lives in [`openspec/changes/`](openspec/changes/).
+> **Status:** early development. Milestones M1 (local rendering with `a2ui-term demo`), M2 (`serve`, `send`, `ask`, `close`) and M3 (the widget board with `add`, `update`, `set`, `remove`, `list`) are implemented. The package is not on npm yet. The specs of the finished milestones live in [`openspec/specs/`](openspec/specs/), the plans for the next ones in [`openspec/changes/`](openspec/changes/).
 
 ## Why a board
 
@@ -258,20 +258,20 @@ To write your own client in another language, see [`docs/protocol.md`](docs/prot
 
 ## Roadmap
 
-Each milestone is one OpenSpec change with a proposal, specs, a design and tasks.
+Each milestone is one OpenSpec change with a proposal, specs, a design and tasks. Finished milestones live in [`openspec/changes/archive/`](openspec/changes/archive/), and their specs in [`openspec/specs/`](openspec/specs/).
 
-| Milestone | Change                                                             | Scope                                                                                      |
-| --------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| M1        | [`add-local-rendering`](openspec/changes/add-local-rendering/)     | Project setup, runtime, Ink renderer for 8 components, `demo`                              |
-| M2        | [`add-pane-server`](openspec/changes/add-pane-server/)             | Sessions, socket protocol, `serve`, `send`, `ask`, `close`                                 |
-| M3        | [`add-widget-board`](openspec/changes/add-widget-board/)           | Shared board with a 12-column grid and scrolling, `add`, `update`, `set`, `remove`, `list` |
-| M4        | [`add-tmux-board`](openspec/changes/add-tmux-board/)               | Board pane in tmux, `open`, automatic launch, ended widgets                                |
-| M5        | [`add-agent-workflow`](openspec/changes/add-agent-workflow/)       | `ask` on widgets, action history with `events`, `guide`, Agent Skill, `doctor`             |
-| M6        | [`add-mouse-arrangement`](openspec/changes/add-mouse-arrangement/) | Mouse wheel, clicks, drag to arrange, close mark, keyboard move mode                       |
-| M7        | [`extend-basic-catalog`](openspec/changes/extend-basic-catalog/)   | Remaining basic catalog components, stable focus, help overlay                             |
-| M8        | [`add-terminal-charts`](openspec/changes/add-terminal-charts/)     | `VegaChart` with a Vega-Lite subset, live chart updates                                    |
-| M9        | [`prepare-release`](openspec/changes/prepare-release/)             | License, package contents, changelog, npm release with provenance                          |
-| M10       | [`add-more-hosts`](openspec/changes/add-more-hosts/)               | Zellij, WezTerm, kitty, TOML and external adapters, `hosts`, configuration file            |
+| Milestone | Change                                                                            | Scope                                                                                      |
+| --------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| M1        | [`add-local-rendering`](openspec/changes/archive/2026-11-23-add-local-rendering/) | Project setup, runtime, Ink renderer for 8 components, `demo`                              |
+| M2        | [`add-pane-server`](openspec/changes/archive/2026-11-23-add-pane-server/)         | Sessions, socket protocol, `serve`, `send`, `ask`, `close`                                 |
+| M3        | [`add-widget-board`](openspec/changes/archive/2026-11-23-add-widget-board/)       | Shared board with a 12-column grid and scrolling, `add`, `update`, `set`, `remove`, `list` |
+| M4        | [`add-tmux-board`](openspec/changes/add-tmux-board/)                              | Board pane in tmux, `open`, automatic launch, ended widgets                                |
+| M5        | [`add-agent-workflow`](openspec/changes/add-agent-workflow/)                      | `ask` on widgets, action history with `events`, `guide`, Agent Skill, `doctor`             |
+| M6        | [`add-mouse-arrangement`](openspec/changes/add-mouse-arrangement/)                | Mouse wheel, clicks, drag to arrange, close mark, keyboard move mode                       |
+| M7        | [`extend-basic-catalog`](openspec/changes/extend-basic-catalog/)                  | Remaining basic catalog components, stable focus, help overlay                             |
+| M8        | [`add-terminal-charts`](openspec/changes/add-terminal-charts/)                    | `VegaChart` with a Vega-Lite subset, live chart updates                                    |
+| M9        | [`prepare-release`](openspec/changes/prepare-release/)                            | License, package contents, changelog, npm release with provenance                          |
+| M10       | [`add-more-hosts`](openspec/changes/add-more-hosts/)                              | Zellij, WezTerm, kitty, TOML and external adapters, `hosts`, configuration file            |
 
 ## Development
 

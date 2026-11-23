@@ -6,7 +6,7 @@
 - [x] 1.2 Add `tsconfig.json` (strict, `noUncheckedIndexedAccess`, `module: nodenext`, `jsx: react-jsx`) and verify `npm run typecheck` passes on an empty `src/cli.ts`
 - [x] 1.3 Add `tsup.config.ts` that bundles `src/cli.ts` to `dist/cli.js` with a shebang and verify `node dist/cli.js --version` prints the package version
 - [x] 1.4 Add `vitest.config.ts`, ESLint flat config and Prettier config and verify `npm test`, `npm run lint` and `npm run format -- --check` pass
-- [ ] 1.5 Add a GitHub Actions workflow that runs typecheck, lint, test and build on Node.js 22 and 24 on Linux and macOS, and verify it passes on the first push
+- [x] 1.5 Add a GitHub Actions workflow that runs typecheck, lint, test and build on Node.js 22 and 24 on Linux and macOS, and verify it passes on the first push
 
 ## 2. A2UI runtime
 
