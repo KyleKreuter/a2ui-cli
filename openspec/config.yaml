@@ -1,0 +1,18 @@
+schema: spec-driven
+
+context: |
+  a2ui-term is an open-source TypeScript CLI that renders A2UI surfaces in a terminal pane.
+  Write all artifacts in English.
+  Runtime: Node.js >= 22, ESM only, TypeScript strict mode.
+  Use only the official A2UI packages (@a2ui/web_core, @a2ui/agent) for protocol, state and Express compilation.
+  Pin @a2ui/web_core and @a2ui/agent to exact versions; the renderer targets one A2UI protocol version at a time.
+  stdout is reserved: Ink owns it in `serve` and `demo`, the MCP transport owns it in `mcp`, and command results own it elsewhere. Logs go to a file.
+  Start child processes with execFile/spawn and an argv array, never through a shell.
+  No multiplexer is an install-time dependency; host adapters call host CLIs at runtime.
+  CI runs without any terminal multiplexer installed.
+
+rules:
+  proposal:
+    - State what is out of scope.
+  tasks:
+    - Every task group lands its own tests and docs.
