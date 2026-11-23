@@ -165,7 +165,7 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
       stdout: io.stdout,
       // Ink renders no frames when it detects CI, for example CI=true, even on
       // a terminal. The board always runs on a terminal, so render live.
-      interactive: io.stdout.isTTY === true,
+      interactive: io.stdout.isTTY,
       exitOnCtrlC: false,
       patchConsole: false,
     });

@@ -65,7 +65,7 @@ export async function runDemo(
     stdin: keyboard,
     // Ink renders no frames when it detects CI, for example CI=true, even on
     // a terminal. Decide by the terminal alone.
-    interactive: process.stdout.isTTY === true,
+    interactive: process.stdout.isTTY,
     exitOnCtrlC: false,
     alternateScreen: true,
   });
