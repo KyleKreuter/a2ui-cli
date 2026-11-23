@@ -18,13 +18,13 @@ a2ui-term builds only on the official A2UI packages: `@a2ui/web_core` for protoc
 
 Each milestone is one OpenSpec change with a proposal, specs, a design and tasks.
 
-| Milestone | Change | Scope |
-|---|---|---|
-| M1 | [`add-local-rendering`](openspec/changes/add-local-rendering/) | Project setup, runtime, Ink renderer for 8 components, `demo` |
-| M2 | [`add-pane-server`](openspec/changes/add-pane-server/) | Sessions, socket protocol, `serve`, `send`, `ask`, `close` |
-| M3 | [`add-host-adapters`](openspec/changes/add-host-adapters/) | Host adapters (tmux, TOML, external programs), `open`, `hosts`, configuration |
-| M4 | [`add-express-and-mcp`](openspec/changes/add-express-and-mcp/) | Express input, `compile`, MCP server, `doctor` |
-| M5 | [`extend-catalog-and-hosts`](openspec/changes/extend-catalog-and-hosts/) | Remaining components, Zellij, WezTerm, kitty, npm release |
+| Milestone | Change                                                                   | Scope                                                                         |
+| --------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| M1        | [`add-local-rendering`](openspec/changes/add-local-rendering/)           | Project setup, runtime, Ink renderer for 8 components, `demo`                 |
+| M2        | [`add-pane-server`](openspec/changes/add-pane-server/)                   | Sessions, socket protocol, `serve`, `send`, `ask`, `close`                    |
+| M3        | [`add-host-adapters`](openspec/changes/add-host-adapters/)               | Host adapters (tmux, TOML, external programs), `open`, `hosts`, configuration |
+| M4        | [`add-express-and-mcp`](openspec/changes/add-express-and-mcp/)           | Express input, `compile`, MCP server, `doctor`                                |
+| M5        | [`extend-catalog-and-hosts`](openspec/changes/extend-catalog-and-hosts/) | Remaining components, Zellij, WezTerm, kitty, npm release                     |
 
 ## Contributing
 

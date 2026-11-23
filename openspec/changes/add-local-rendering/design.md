@@ -75,6 +75,8 @@ Use `ink-text-input` and pass the bound value and `WritableBinding.set`. The `ob
 
 `tsup` bundles `src/cli.ts` into one ESM file `dist/cli.js` with a shebang. Dependencies stay external. `tsx` runs the sources during development. `tsc --noEmit` type-checks. TypeScript runs with `strict`, `noUncheckedIndexedAccess`, `module: nodenext` and `jsx: react-jsx`.
 
+Use TypeScript 6.0. `typescript-eslint@8` declares `typescript <6.1.0` as peer, so TypeScript 7 waits for a `typescript-eslint` release that supports it.
+
 ## Risks / Trade-offs
 
 - [`web_core` changes its node layer API in a minor release] → Exact version pins; the `a2ui/` wrapper is the only module that imports `web_core` state types; renderer tests cover each component.
