@@ -2,33 +2,12 @@
 
 ## Purpose
 
-Lets a2ui-term open the board in whatever terminal host the user runs, and lets users and third parties add hosts without a new release.
+Lets users choose the host of the board, and lets users and third parties add hosts without a new release.
 
 ## ADDED Requirements
 
-### Requirement: Bundled Zellij adapter
-a2ui-term SHALL ship a Zellij adapter that is usable when `ZELLIJ` is set and `zellij` is on `PATH`, with priority 50, and that opens the board with `zellij run --direction <right|down> --` followed by the renderer arguments.
-
-#### Scenario: Open in Zellij
-- **WHEN** the Zellij adapter opens the board to the right
-- **THEN** it runs `zellij run --direction right --` followed by the renderer arguments
-
-### Requirement: Bundled WezTerm adapter
-a2ui-term SHALL ship a WezTerm adapter that is usable when `WEZTERM_PANE` is set and `wezterm` is on `PATH`, with priority 30, that opens the board with `wezterm cli split-pane --right|--bottom --` followed by the renderer arguments, and that captures the trimmed stdout as the pane id.
-
-#### Scenario: Open in WezTerm
-- **WHEN** the WezTerm adapter opens the board below
-- **THEN** it runs `wezterm cli split-pane --bottom --` followed by the renderer arguments and stores the printed pane id
-
-### Requirement: Bundled kitty adapter
-a2ui-term SHALL ship a kitty adapter that is usable when `KITTY_WINDOW_ID` is set, `kitten` is on `PATH` and `kitten @ ls` succeeds, with priority 30, and that opens the board with `kitten @ launch --location=vsplit|hsplit` followed by the renderer arguments.
-
-#### Scenario: Remote control off
-- **WHEN** `KITTY_WINDOW_ID` is set and `kitten @ ls` fails
-- **THEN** the kitty adapter is not usable, with the reason that kitty remote control is off
-
 ### Requirement: Adapter selection
-With `--host <name>` or `A2UI_TERM_HOST` set, a2ui-term SHALL use exactly that adapter and SHALL fail with its reason when it is not usable. Otherwise it SHALL use the usable adapter with the highest priority, and the alphabetically first name on a tie. Adapters in `disabled_hosts` SHALL never be selected.
+With `--host <name>` or `A2UI_TERM_HOST` set, a2ui-term SHALL use exactly that adapter and SHALL fail with its reason when it is not usable. Otherwise it SHALL use the usable adapter with the highest priority, and the alphabetically first name on a tie. The built-in adapters SHALL have the priorities tmux 50, Zellij 50, WezTerm 30 and kitty 30. Adapters in `disabled_hosts` SHALL never be selected.
 
 #### Scenario: tmux inside WezTerm
 - **WHEN** tmux (priority 50) and WezTerm (priority 30) are both usable
@@ -46,7 +25,7 @@ a2ui-term SHALL decide the owner check, the widget label, the mouse hint, the `w
 - **THEN** its widgets stay on the board without the `ended` tag
 
 ### Requirement: Declarative TOML adapters
-a2ui-term SHALL load adapter definitions from `~/.config/a2ui-term/hosts/<name>.toml`. A user file SHALL replace a built-in adapter with the same name. Each file SHALL define `name`, `priority`, detection rules (`env_any`, `requires_bin`), capabilities, and argv templates for `open` and, per capability, `open_window`, `exists`, `label`, `close` and `mouse`.
+a2ui-term SHALL load adapter definitions from `~/.config/a2ui-term/hosts/<name>.toml`. A user file SHALL replace a built-in adapter with the same name. Each file SHALL define `name`, `priority`, detection rules (`env_any`, `requires_bin`), capabilities, and argv templates for `open` and, per capability, `open_window`, `pane_state`, `label`, `close` and `mouse`.
 
 #### Scenario: User adds a host
 - **WHEN** `~/.config/a2ui-term/hosts/herdr.toml` defines a valid adapter whose detection variable is set
@@ -65,7 +44,7 @@ a2ui-term SHALL load adapter definitions from `~/.config/a2ui-term/hosts/<name>.
 - **THEN** the renderer arguments appear as separate arguments after `--`
 
 ### Requirement: External adapter programs
-When `external_adapters` is true, a2ui-term SHALL treat every program `a2ui-term-host-<name>` on `PATH` as an adapter. It SHALL call it with the subcommands `detect`, `open --placement <p> --direction <d> --size <n> --caller <pane> -- <argv...>`, `exists <pane>`, `label <pane>`, `mouse <pane>` and `close <pane>`, read JSON from stdout, and treat a non-zero exit code as an error with the stderr text. `detect` SHALL time out after 500 ms and other subcommands after 3 s.
+When `external_adapters` is true, a2ui-term SHALL treat every program `a2ui-term-host-<name>` on `PATH` as an adapter. It SHALL call it with the subcommands `detect`, `open --placement <p> --direction <d> --size <n> --caller <pane> -- <argv...>`, `pane-state <pane>`, `label <pane>`, `mouse <pane>` and `close <pane>`, read JSON from stdout, and treat a non-zero exit code as an error with the stderr text. `detect` SHALL time out after 500 ms and other subcommands after 3 s.
 
 #### Scenario: External adapter present
 - **WHEN** `a2ui-term-host-foo detect` prints `{"usable": true, "priority": 40}`
