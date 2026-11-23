@@ -1,21 +1,19 @@
 import { execFile } from 'node:child_process';
-import { EventEmitter } from 'node:events';
-import { writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { PassThrough } from 'node:stream';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { FakeStdin, FakeStdout, keys, plain, settle } from '../../test/ink.js';
+import {
+  clientIo as createClientIo,
+  input as writeInput,
+  startServe as startServeIn,
+} from '../../test/commands.js';
+import { keys, settle } from '../../test/ink.js';
 import { socketDir } from '../../test/socket.js';
 import { CATALOG_ID, PROTOCOL_VERSION } from '../a2ui/processor.js';
 import { EMPTY_STATE } from '../render/App.js';
-import { readState } from '../session/state.js';
 import { runAsk } from './ask.js';
-import type { ClientIo } from './client-command.js';
 import { runClose } from './close.js';
 import { ExitCode } from './exit-codes.js';
 import { runSend } from './send.js';
-import { runServe, type ServeIo } from './serve.js';
 
 let tmp: { dir: string; remove: () => void };
 
@@ -48,61 +46,9 @@ const confirmSurface = [
   },
 ];
 
-function input(name: string, lines: readonly unknown[]): string {
-  const path = join(tmp.dir, name);
-  writeFileSync(
-    path,
-    lines.map((line) => (typeof line === 'string' ? line : JSON.stringify(line))).join('\n'),
-  );
-  return path;
-}
-
-/** Client streams. With `stdinText`, stdin is a pipe that holds it; else a terminal. */
-function clientIo(stdinText?: string) {
-  let stdout = '';
-  let stderr = '';
-  const pipe = new PassThrough();
-  const stdin = pipe as unknown as NodeJS.ReadStream;
-  stdin.isTTY = stdinText === undefined;
-  if (stdinText !== undefined) {
-    pipe.end(stdinText);
-  }
-  const io: ClientIo = {
-    stdin,
-    stdout: writer((chunk) => (stdout += chunk)),
-    stderr: writer((chunk) => (stderr += chunk)),
-    env: { XDG_RUNTIME_DIR: tmp.dir },
-  };
-  return { io, stdout: () => stdout, stderr: () => stderr };
-}
-
-function writer(append: (chunk: string) => void): NodeJS.WritableStream {
-  return {
-    write: (chunk: string) => {
-      append(chunk);
-      return true;
-    },
-  } as NodeJS.WritableStream;
-}
-
-/** Runs `serve --session t` against a fake terminal. */
-async function startServe() {
-  const stdout = new FakeStdout();
-  const stdin = new FakeStdin();
-  const io: ServeIo = {
-    stdin: stdin as unknown as NodeJS.ReadStream,
-    stdout: stdout as unknown as NodeJS.WriteStream,
-    stderr: writer(() => undefined),
-    env: { XDG_RUNTIME_DIR: tmp.dir },
-    logger: { file: '/dev/null', write: () => undefined },
-    process: new EventEmitter(),
-  };
-  const exit = runServe({ session: 't' }, io);
-  const state = join(tmp.dir, 'a2ui-term', 't.json');
-  await expect.poll(() => readState(state)?.pid).toBe(process.pid);
-  const screen = () => plain(stdout.frames.join(''));
-  return { exit, stdin, screen };
-}
+const input = (name: string, lines: readonly unknown[]) => writeInput(tmp.dir, name, lines);
+const clientIo = (stdinText?: string) => createClientIo(tmp.dir, {}, stdinText);
+const startServe = () => startServeIn(tmp.dir);
 
 describe('client commands against serve', () => {
   it('send renders the messages and exits with 0', async () => {

@@ -22,7 +22,7 @@ Lets agents and scripts create, change and remove widgets on the board with one 
 The board SHALL apply the messages of one `add` or `update` either all or none. On a rejected message, the command SHALL exit with code 4 and the board SHALL look as before.
 
 #### Scenario: Invalid component in the second message
-- **WHEN** an `add` input holds a valid `createSurface` and an `updateComponents` message with an unknown component
+- **WHEN** an `add` input holds a valid `createSurface` and an `updateComponents` message with a component that fails validation, for example a `Text` without `text`
 - **THEN** no widget is created and the command exits with code 4
 
 ### Requirement: Update a widget

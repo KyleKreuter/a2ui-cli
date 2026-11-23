@@ -2,7 +2,7 @@
 
 A live [A2UI](https://a2ui.org) board next to your coding agents in the terminal. Agents, or any script, place widgets on it with shell commands: progress, results, charts and questions. Each widget gets an id, which the agent uses to update or remove it, and the user's answers come back as JSON.
 
-> **Status:** early development. Milestones M1 (local rendering with `a2ui-term demo`) and M2 (`serve`, `send`, `ask`, `close`) are implemented. The package is not on npm yet. The design lives in [`openspec/changes/`](openspec/changes/).
+> **Status:** early development. Milestones M1 (local rendering with `a2ui-term demo`), M2 (`serve`, `send`, `ask`, `close`) and M3 (the widget board with `add`, `update`, `set`, `remove`, `list`) are implemented. The package is not on npm yet. The design lives in [`openspec/changes/`](openspec/changes/).
 
 ## Why a board
 
@@ -15,11 +15,11 @@ Available now:
 - Renders A2UI 1.0 surfaces in the terminal with [Ink](https://github.com/vadimdemedes/ink): Text, Row, Column, Card, Divider, Button, TextField and CheckBox. Other components show as `[unsupported: <type>]`.
 - Renders a Markdown subset in Text: headings, list items, bold, italic and inline code.
 - `a2ui-term demo` renders A2UI messages from a file or stdin in the current terminal.
-- `a2ui-term serve` runs a renderer in its own terminal. Scripts send it UI with `a2ui-term send` and wait for the user's answer with `a2ui-term ask`, which prints the action as JSON.
+- `a2ui-term serve` runs the board in its own terminal. Scripts send it UI with `a2ui-term send` and wait for the user's answer with `a2ui-term ask`, which prints the action as JSON.
+- The board shows all widgets in a 12-column grid and scrolls. `a2ui-term add` places a widget and prints its id; `update`, `set`, `remove` and `list` work with that id.
 
 Planned (see [Roadmap](#roadmap)):
 
-- One scrollable board in a 12-column grid. `a2ui-term add` places a widget and prints its id; `update`, `set`, `remove` and `list` work with that id.
 - Opens the board in tmux the first time an agent needs it, without taking the focus, and marks the widgets of agents whose pane has closed.
 - `ask` shows a question as a widget and returns only the answer to that widget. A history of the user's actions with `a2ui-term events` keeps answers after an agent's tool call has timed out. `a2ui-term guide` and an Agent Skill teach agents the interface.
 - Arrange widgets with the mouse: scroll with the wheel, drag a widget by its title, close it with `[×]`. A keyboard move mode does the same without a mouse.
@@ -63,16 +63,21 @@ cat examples/form.jsonl | a2ui-term demo
 
 The input is JSON Lines (one A2UI message per line) or one JSON array of messages. Invalid lines and messages do not stop the demo; it reports them on stderr when it exits.
 
-| Key                      | Action                                     |
-| ------------------------ | ------------------------------------------ |
-| `Tab` / `Shift+Tab`      | Move focus to the next / previous input    |
-| `Enter` or `Space`       | Press the focused button                   |
-| `Space`                  | Toggle the focused checkbox                |
-| `Ctrl+Left / Ctrl+Right` | Switch surfaces, if there is more than one |
-| `q` or `Esc`             | Quit, except while a text field has focus  |
-| `Ctrl+C`                 | Quit                                       |
+`demo` shows the surfaces as widgets on a board, the same board that `serve` shows. The keys are the same in both:
 
-The status line shows the last action. The demo also writes every action, every message for the agent (such as the response to a `callRendererFunction` message) and every invalid message as one JSON line to its log file:
+| Key                 | Action                                                                |
+| ------------------- | --------------------------------------------------------------------- |
+| `Tab` / `Shift+Tab` | Move the focus to the next / previous input. The board scrolls to it. |
+| `Enter` or `Space`  | Press the focused button                                              |
+| `Space`             | Toggle the focused checkbox                                           |
+| `PgUp` / `PgDn`     | Scroll one page                                                       |
+| `Home` / `End`      | Scroll to the top / bottom                                            |
+| `↑` / `↓`           | Scroll one line, except while a text field has focus                  |
+| `?`                 | Show or hide the key list, except while a text field has focus        |
+| `q` or `Esc`        | Quit, except while a text field has focus                             |
+| `Ctrl+C`            | Quit                                                                  |
+
+The status line shows the number of widgets and whether the board has more content above or below the visible part. The demo also writes every action, every message for the agent (such as the response to a `callRendererFunction` message) and every invalid message as one JSON line to its log file:
 
 | Platform | Log file                                                         |
 | -------- | ---------------------------------------------------------------- |
@@ -90,6 +95,7 @@ On Windows, pass a file: reading keys while stdin is a pipe is not supported the
 | [`examples/form.jsonl`](examples/form.jsonl)         | A sign-up form with text fields, a checkbox, a check and buttons |
 | [`examples/confirm.jsonl`](examples/confirm.jsonl)   | A yes/no confirmation                                            |
 | [`examples/progress.jsonl`](examples/progress.jsonl) | Text bound to the data model, changed by `updateDataModel`       |
+| [`examples/board.sh`](examples/board.sh)             | One agent on the board: `add`, `set` and `remove --mine`         |
 
 ### Writing messages for a2ui-term
 
@@ -109,7 +115,7 @@ Save this message as `hi.jsonl` and run `a2ui-term demo hi.jsonl`:
 
 ## Ask the user from a script: `serve`, `send`, `ask`, `close`
 
-`serve` runs a renderer for a session in its own terminal. Other processes send it A2UI messages over a Unix domain socket and receive the user's actions. This works on macOS and Linux.
+`serve` runs the board for a session in its own terminal. Other processes send it A2UI messages over a Unix domain socket and receive the user's actions. This works on macOS and Linux.
 
 1. In a second terminal, start the renderer:
 
@@ -136,34 +142,107 @@ Save this message as `hi.jsonl` and run `a2ui-term demo hi.jsonl`:
    a2ui-term close --session demo
    ```
 
-| Command                                | Does                                                                                                              |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `serve`                                | Renders the session's surfaces in this terminal until you press `q`, a client sends `close`, or it gets a signal. |
-| `send [file] [--clear]`                | Sends A2UI messages and exits when the renderer has accepted all of them. `--clear` removes all surfaces first.   |
-| `ask [file] [--clear] [--timeout <s>]` | Like `send`, then waits for the next user action and prints it as JSON.                                           |
-| `close`                                | Stops the renderer. Succeeds also when no renderer runs.                                                          |
+| Command                                | Does                                                                                                           |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `serve`                                | Shows the session's board in this terminal until you press `q`, a client sends `close`, or it gets a signal.   |
+| `send [file] [--clear]`                | Sends A2UI messages and exits when the renderer has accepted all of them. `--clear` removes all widgets first. |
+| `ask [file] [--clear] [--timeout <s>]` | Like `send`, then waits for the next user action and prints it as JSON.                                        |
+| `close`                                | Stops the renderer. Succeeds also when no renderer runs.                                                       |
 
 `send` and `ask` read JSON Lines or a JSON array, from a file or from stdin (`-` or no file). They parse the whole input first and send nothing if a line is invalid. `ask` ignores actions that happened before it sent its messages.
 
-A surface id can exist only once per renderer, so a second `ask` with the same file fails with `Surface confirm already exists`. To show the same file again, pass `--clear`: it removes all surfaces before the new messages arrive. The user sees no empty screen in between.
+Each surface from `send` or `ask` shows as a full-width widget whose id is its surface id, for example `confirm`. A surface id can exist only once per renderer, so a second `ask` with the same file fails with `Surface confirm already exists`. To show the same file again, pass `--clear`: it removes all widgets before the new messages arrive. The user sees no empty screen in between. Surface ids of the form `w<number>`, for example `w9`, are reserved for widgets that `add` creates.
 
 ```bash
 a2ui-term ask --clear --timeout 60 examples/confirm.jsonl
 ```
 
-`a2ui-term send --clear < /dev/null` only removes all surfaces.
+`a2ui-term send --clear < /dev/null` only removes all widgets.
 
-Without `--session`, the commands use `$A2UI_TERM_SESSION`, then an id derived from the current tmux, Zellij, WezTerm or kitty pane, then `default`. The renderer status line shows the session, the host and the number of connected clients.
+Without `--session`, the commands use `$A2UI_TERM_SESSION`, then `default`. So all agents on a machine share one board, unless you give them different sessions. The status line of the board shows the session, the number of widgets and the number of connected clients.
 
-### Exit codes
+## Place widgets on the board: `add`, `update`, `set`, `remove`, `list`
 
-| Code | Meaning                                                                              |
-| ---- | ------------------------------------------------------------------------------------ |
-| `0`  | Success.                                                                             |
-| `1`  | Error, for example no renderer runs for the session, or an invalid flag.             |
-| `2`  | `ask` got no action before `--timeout`.                                              |
-| `3`  | The user closed the renderer while `ask` waited.                                     |
-| `4`  | The input is not valid JSON Lines or JSON, or the renderer rejected an A2UI message. |
+Every agent places its own widgets on the shared board and gets an id back for each one. With that id, the agent changes or removes its widget later. The id stays valid until the widget is removed, and the board never gives it to another widget.
+
+1. In a second terminal, start the board:
+
+   ```bash
+   a2ui-term serve
+   ```
+
+2. Add a widget. `add` prints its id as JSON:
+
+   ```bash
+   a2ui-term add --title Build --width 6 examples/progress.jsonl
+   ```
+
+   ```json
+   { "widgetId": "w1" }
+   ```
+
+3. Change values in the data model of the widget. Each value is JSON, or text with `--text`:
+
+   ```bash
+   a2ui-term set w1 /percent '"60%"'
+   ```
+
+   ```bash
+   a2ui-term set --text w1 /step "Running tests" /percent 90%
+   ```
+
+4. Remove the widget:
+
+   ```bash
+   a2ui-term remove w1
+   ```
+
+| Command                                                       | Does                                                                                                                        |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `add [file] [--width <1-12>] [--title] [--label]`             | Creates a widget from exactly one `createSurface` and its `updateComponents` and `updateDataModel` messages. Prints its id. |
+| `update <widgetId> [file]`                                    | Applies `updateComponents` and `updateDataModel` messages to the widget. It keeps its place on the board.                   |
+| `set <widgetId> <path> <value>... [--text] [--delete <path>]` | Sets values at JSON Pointer paths, for example `/percent`. `--delete` removes the value at a path and can repeat.           |
+| `remove <widgetId>...` or `remove --mine`                     | Removes the named widgets, or all widgets of the caller's owner. Prints the removed ids as JSON.                            |
+| `list [--mine]`                                               | Prints all widgets in board order as JSON, with id, title, label, owner, width and position.                                |
+
+The surface id in the input of `add` does not matter: the board replaces it with the widget id. `add` and `update` apply all messages or none. When one message fails validation, the command exits with code 4 and the board stays as it was. The same is true for `remove` with an id that does not exist.
+
+The grid has 12 columns, and a widget is 6 columns wide by default. Widgets fill a row from left to right and wrap to the next row. Below 80 terminal columns, every widget takes the full width.
+
+### Owners and labels
+
+`add` records the owner of a widget, so that `remove --mine` and `list --mine` find the widgets of one agent. The owner is the first of:
+
+1. The `--owner` flag.
+2. The `A2UI_TERM_OWNER` environment variable.
+3. The pane of the terminal host that runs the command:
+
+   | Host    | Variable          | Owner, for example |
+   | ------- | ----------------- | ------------------ |
+   | tmux    | `TMUX_PANE`       | `tmux:%3`          |
+   | Zellij  | `ZELLIJ_PANE_ID`  | `zellij:7`         |
+   | WezTerm | `WEZTERM_PANE`    | `wezterm:12`       |
+   | kitty   | `KITTY_WINDOW_ID` | `kitty:4`          |
+
+   tmux comes first, so tmux inside WezTerm or kitty gives a tmux owner.
+
+Without any of these, a widget has no owner, and `--mine` exits with code 1. The top border of a widget shows its title, its label and its id, for example `╭─ Build · api-agent · w3 ─╮`. The label is `--label`, then `A2UI_TERM_LABEL`, then the owner.
+
+[`examples/board.sh`](examples/board.sh) plays one agent. Run it from two panes at the same time, or with two owners in one terminal:
+
+```bash
+A2UI_TERM_OWNER=api examples/board.sh API & A2UI_TERM_OWNER=web examples/board.sh Web & wait
+```
+
+## Exit codes
+
+| Code | Meaning                                                                                                                                                   |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | Success.                                                                                                                                                  |
+| `1`  | Error, for example no renderer runs for the session, an invalid flag, or `--mine` without an owner.                                                       |
+| `2`  | `ask` got no action before `--timeout`.                                                                                                                   |
+| `3`  | The user closed the renderer while `ask` waited.                                                                                                          |
+| `4`  | The input is not valid JSON Lines or JSON, or the renderer rejected an A2UI message or a widget request, for example for a widget id that does not exist. |
 
 For example, a shell script can branch on the answer:
 

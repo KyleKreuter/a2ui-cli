@@ -2,11 +2,13 @@ import { constants } from 'node:os';
 import { render, type Instance } from 'ink';
 import { createElement } from 'react';
 import { A2uiRuntime } from '../a2ui/processor.js';
+import { WidgetBoard, type BoardResult } from '../board/registry.js';
 import { createLogger, type Logger } from '../log.js';
 import type { CloseReason } from '../protocol/messages.js';
 import { App, type SessionStatus } from '../render/App.js';
 import { PaneServer } from '../server/server.js';
-import { NO_HOST, detectHostPane, type Env } from '../session/id.js';
+import { NO_HOST, detectHostPane } from '../session/host.js';
+import type { Env } from '../session/id.js';
 import { ensureRuntimeDir } from '../session/paths.js';
 import { locateSession, type Session } from '../session/session.js';
 import { probeSocket, readState, removeSessionFiles, writeState } from '../session/state.js';
@@ -79,8 +81,9 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
     io.logger.write('outbound', { ...message });
   });
 
+  const board = new WidgetBoard(runtime);
   const pane = detectHostPane(io.env);
-  let status: SessionStatus = { sessionId: session.id, host: pane?.host ?? NO_HOST, clients: 0 };
+  let status: SessionStatus = { sessionId: session.id, clients: 0 };
   let instance: Instance | undefined;
   let stop: Stop | undefined;
   let stopped: Promise<void> | undefined;
@@ -100,22 +103,29 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
       socket: session.paths.socket,
       renderer: {
         apply: (messages) => {
-          const errors = runtime.apply(messages);
+          const errors = board.apply(messages);
           for (const error of errors) {
             io.logger.write('error', { ...error });
           }
           return errors;
         },
-        clear: () => runtime.clear(),
-        onAction: (handler) => runtime.onAction(handler),
+        clear: () => {
+          board.clear();
+        },
+        onAction: (handler) => board.onAction(handler),
+        add: (request) => logged(io.logger, 'add', board.add(request)),
+        update: (widgetId, messages) =>
+          logged(io.logger, 'update', board.update(widgetId, messages)),
+        remove: (target) => logged(io.logger, 'remove', board.remove(target)),
+        list: () => board.list(),
       },
       version: VERSION,
       logger: io.logger,
       onClientCount: (clients) => {
         status = { ...status, clients };
-        instance?.rerender(createElement(App, { runtime, session: status }));
+        instance?.rerender(createElement(App, { board, session: status }));
       },
-      // Focusing the pane needs a host adapter (M3, add-tmux-panel).
+      // Focusing the pane needs a host adapter (add-tmux-board).
       onFocus: () => {
         io.logger.write('focus requested');
       },
@@ -130,7 +140,7 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
 
   writeState(session.paths.state, {
     pid: process.pid,
-    host: status.host,
+    host: pane?.host ?? NO_HOST,
     paneRef: pane?.paneId ?? null,
     createdAt: new Date().toISOString(),
   });
@@ -150,7 +160,7 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
 
   try {
     io.stdout.write(ENTER_ALTERNATE_SCREEN);
-    instance = render(createElement(App, { runtime, session: status }), {
+    instance = render(createElement(App, { board, session: status }), {
       stdin: io.stdin,
       stdout: io.stdout,
       exitOnCtrlC: false,
@@ -169,11 +179,20 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
       io.process.off(signal, listener);
     }
     io.process.off('uncaughtException', onError);
+    board.dispose();
     runtime.dispose();
   }
 
   io.logger.write('serve stopped', { session: session.id, reason: stop?.reason });
   return exitCode(io, stop);
+}
+
+/** Writes a failed widget request to the log and returns the result unchanged. */
+function logged<T>(logger: Logger, request: string, result: BoardResult<T>): BoardResult<T> {
+  if (!result.ok) {
+    logger.write('error', { request, message: result.error });
+  }
+  return result;
 }
 
 /**

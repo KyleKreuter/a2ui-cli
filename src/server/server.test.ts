@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { connectRaw, socketDir, type RawClient } from '../../test/socket.js';
 import { FakeRenderer } from '../../test/renderer.js';
+import { CATALOG_ID, PROTOCOL_VERSION } from '../a2ui/processor.js';
 import { PaneServer } from './server.js';
 
 let dir: { dir: string; remove: () => void };
@@ -167,5 +168,58 @@ describe('PaneServer', () => {
     // The paused socket does not report the close, so check the server side.
     await expect.poll(() => server.clientCount).toBe(1);
     await roundTrip(other);
+  });
+});
+
+describe('widget requests', () => {
+  const create = (surfaceId = 'x') => ({
+    version: PROTOCOL_VERSION,
+    createSurface: { surfaceId, catalogId: CATALOG_ID },
+  });
+
+  it('answers add, update, list and remove with the request id', async () => {
+    const client = await connect();
+    client.send({ type: 'add', id: 'a1', width: 12, owner: 'tmux:%3', messages: [create()] });
+    expect(await client.next('added')).toEqual({ type: 'added', id: 'a1', widgetId: 'w1' });
+    client.send({ type: 'update', id: 'u1', widgetId: 'w1', messages: [] });
+    expect(await client.next('updated')).toEqual({ type: 'updated', id: 'u1' });
+    client.send({ type: 'list', id: 'l1' });
+    expect(await client.next('widgets')).toEqual({
+      type: 'widgets',
+      id: 'l1',
+      widgets: [
+        { widgetId: 'w1', title: null, label: null, owner: 'tmux:%3', width: 12, position: 0 },
+      ],
+    });
+    client.send({ type: 'remove', id: 'r1', owner: 'tmux:%3' });
+    expect(await client.next('removed')).toEqual({ type: 'removed', id: 'r1', widgetIds: ['w1'] });
+  });
+
+  it('answers a failed request with an error of source widget and the same id', async () => {
+    const client = await connect();
+    client.send({ type: 'update', id: 'u1', widgetId: 'w9', messages: [] });
+    expect(await client.next('error')).toEqual({
+      type: 'error',
+      id: 'u1',
+      source: 'widget',
+      message: 'widget w9 does not exist',
+    });
+  });
+
+  it('answers an invalid request with an error of source protocol and the same id', async () => {
+    const client = await connect();
+    client.send({ type: 'add', id: 'a2', width: 13, messages: [] });
+    expect(await client.next('error')).toMatchObject({ id: 'a2', source: 'protocol' });
+  });
+
+  it('answers the sender only', async () => {
+    const a = await connect();
+    const b = await connect();
+    a.send({ type: 'add', id: 'a1', messages: [create()] });
+    await a.next('added');
+    b.send({ type: 'list', id: 'l1' });
+    expect(await b.next('widgets')).toMatchObject({ id: 'l1' });
+    await roundTrip(b);
+    expect(b.received.map(({ type }) => type)).toEqual(['ready', 'widgets', 'pong']);
   });
 });

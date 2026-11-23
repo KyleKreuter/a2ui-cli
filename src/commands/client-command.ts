@@ -4,11 +4,13 @@ import {
   NoRendererError,
   PaneClient,
   RendererClosedError,
+  RequestError,
 } from '../client/client.js';
 import { parseMessages } from '../protocol/jsonl.js';
 import type { Env } from '../session/id.js';
+import { resolveOwner } from '../session/owner.js';
 import { checkRuntimeDir } from '../session/paths.js';
-import type { Session } from '../session/session.js';
+import { locateSession, type Session } from '../session/session.js';
 import { ExitCode } from './exit-codes.js';
 
 export interface ClientIo {
@@ -108,6 +110,37 @@ export async function connect(session: Session): Promise<PaneClient> {
   }
 }
 
+/** Connects to the renderer of the session, runs `action`, and ends the connection. */
+export async function withClient<T>(
+  options: SessionOptions,
+  io: ClientIo,
+  action: (client: PaneClient) => Promise<T>,
+): Promise<T> {
+  const client = await connect(locateSession(options.session, io.env));
+  try {
+    return await action(client);
+  } finally {
+    client.end();
+  }
+}
+
+/** The owner of the caller for `--mine`. Throws with exit code 1 when none is known. */
+export function requireOwner(flag: string | undefined, io: ClientIo): string {
+  const owner = resolveOwner(flag, io.env);
+  if (owner === undefined) {
+    throw new CommandError(
+      ExitCode.error,
+      'no owner is known for --mine. Run inside tmux, Zellij, WezTerm or kitty, set A2UI_TERM_OWNER, or pass --owner.',
+    );
+  }
+  return owner;
+}
+
+/** Writes `value` to stdout as one JSON line. */
+export function printJson(io: ClientIo, value: unknown): void {
+  io.stdout.write(`${JSON.stringify(value)}\n`);
+}
+
 /**
  * Sends every message and fails with exit code 4 when the renderer rejects one.
  * With `clear`, removes all surfaces first. The server handles one connection
@@ -133,6 +166,9 @@ export async function deliver(
 function toCommandError(error: unknown): CommandError {
   if (error instanceof CommandError) {
     return error;
+  }
+  if (error instanceof RequestError) {
+    return new CommandError(ExitCode.inputError, error.message);
   }
   if (error instanceof ActionTimeoutError) {
     return new CommandError(ExitCode.timeout, error.message);

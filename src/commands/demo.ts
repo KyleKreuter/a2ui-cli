@@ -5,6 +5,7 @@ import { ReadStream } from 'node:tty';
 import { render } from 'ink';
 import { createElement } from 'react';
 import { A2uiRuntime, type RuntimeError } from '../a2ui/processor.js';
+import { WidgetBoard } from '../board/registry.js';
 import { createLogger, type Logger } from '../log.js';
 import { App } from '../render/App.js';
 
@@ -59,7 +60,8 @@ export async function runDemo(
     io.logger.write('error', { ...error });
   }
 
-  const instance = render(createElement(App, { runtime }), {
+  const board = new WidgetBoard(runtime);
+  const instance = render(createElement(App, { board }), {
     stdin: keyboard,
     exitOnCtrlC: false,
     alternateScreen: true,

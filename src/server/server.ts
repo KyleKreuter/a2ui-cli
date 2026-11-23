@@ -1,5 +1,6 @@
 import { createServer, type Server, type Socket } from 'node:net';
 import type { ActionEvent } from '../a2ui/processor.js';
+import type { AddRequest, BoardResult, RemoveTarget, WidgetInfo } from '../board/registry.js';
 import type { Logger } from '../log.js';
 import { toJsonLine } from '../protocol/jsonl.js';
 import { LineTooLongError, createLineSplitter } from '../protocol/lines.js';
@@ -9,6 +10,7 @@ import {
   type ClientMessage,
   type CloseReason,
   type ServerMessage,
+  type WidgetRequest,
 } from '../protocol/messages.js';
 
 /** Largest amount of unsent output per client before the server drops it. */
@@ -17,11 +19,16 @@ export const MAX_WRITE_BUFFER_BYTES = 4 * 1024 * 1024;
 /** How long clients get to close their side after `closed`. */
 const CLOSE_GRACE_MS = 200;
 
-/** What the server needs from the renderer. `A2uiRuntime` implements it. */
+/** What the server needs from the renderer. `WidgetBoard` implements it. */
 export interface Renderer {
+  /** Applies plain A2UI messages and returns the errors of the ones that failed. */
   apply(messages: readonly unknown[]): readonly { readonly message: string }[];
   clear(): unknown;
   onAction(handler: (event: ActionEvent) => void): () => void;
+  add(request: AddRequest): BoardResult<string>;
+  update(widgetId: string, messages: readonly unknown[]): BoardResult<void>;
+  remove(target: RemoveTarget): BoardResult<string[]>;
+  list(): WidgetInfo[];
 }
 
 export interface PaneServerOptions {
@@ -142,7 +149,12 @@ export class PaneServer {
     }
     const parsed = parseClientLine(line);
     if (!parsed.ok) {
-      this.send(client, { type: 'error', source: parsed.source, message: parsed.error });
+      this.send(client, {
+        type: 'error',
+        source: parsed.source,
+        message: parsed.error,
+        ...(parsed.id === undefined ? {} : { id: parsed.id }),
+      });
       return;
     }
     this.dispatch(client, parsed.message);
@@ -171,6 +183,44 @@ export class PaneServer {
       case 'ping':
         this.send(client, { type: 'pong', id: message.id });
         return;
+      case 'add':
+      case 'update':
+      case 'remove':
+      case 'list':
+        this.send(client, this.handleWidgetRequest(message));
+        return;
+    }
+  }
+
+  /** Answers a widget request with its reply, or with an error that has the same id. */
+  private handleWidgetRequest(message: WidgetRequest): ServerMessage {
+    const { renderer } = this.options;
+    const { id } = message;
+    const failed = (error: string): ServerMessage => ({
+      type: 'error',
+      source: 'widget',
+      message: error,
+      id,
+    });
+    switch (message.type) {
+      case 'add': {
+        const result = renderer.add(message);
+        return result.ok ? { type: 'added', id, widgetId: result.value } : failed(result.error);
+      }
+      case 'update': {
+        const result = renderer.update(message.widgetId, message.messages);
+        return result.ok ? { type: 'updated', id } : failed(result.error);
+      }
+      case 'remove': {
+        const result = renderer.remove(
+          message.owner === undefined
+            ? { widgetIds: message.widgetIds ?? [] }
+            : { owner: message.owner },
+        );
+        return result.ok ? { type: 'removed', id, widgetIds: result.value } : failed(result.error);
+      }
+      case 'list':
+        return { type: 'widgets', id, widgets: renderer.list() };
     }
   }
 

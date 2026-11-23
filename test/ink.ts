@@ -23,21 +23,26 @@ export const keys = {
   backspace: '\u007F',
   left: '\u001B[D',
   right: '\u001B[C',
-  ctrlLeft: '\u001B[1;5D',
-  ctrlRight: '\u001B[1;5C',
   ctrlC: '\u0003',
+  up: '\u001B[A',
+  down: '\u001B[B',
+  pageUp: '\u001B[5~',
+  pageDown: '\u001B[6~',
+  home: '\u001B[H',
+  end: '\u001B[F',
 } as const;
 
 /** A fake terminal output whose width can change. */
 export class FakeStdout extends EventEmitter {
   readonly isTTY = true;
   columns: number;
-  rows = 40;
+  rows: number;
   readonly frames: string[] = [];
 
-  constructor(columns = 100) {
+  constructor(columns = 100, rows = 40) {
     super();
     this.columns = columns;
+    this.rows = rows;
   }
 
   write = (frame: string, ...rest: unknown[]): boolean => {
@@ -51,9 +56,10 @@ export class FakeStdout extends EventEmitter {
 
   lastFrame = (): string | undefined => this.frames.at(-1);
 
-  /** Changes the width and tells Ink about it, as a terminal resize does. */
-  resize(columns: number): void {
+  /** Changes the size and tells Ink about it, as a terminal resize does. */
+  resize(columns: number, rows = this.rows): void {
     this.columns = columns;
+    this.rows = rows;
     this.emit('resize');
   }
 }
@@ -87,8 +93,8 @@ export class FakeStdin extends EventEmitter {
  * Renders like `ink-testing-library`, but in interactive mode, so that Ink
  * handles terminal resizes.
  */
-export function renderTty(tree: ReactElement, columns = 100) {
-  const stdout = new FakeStdout(columns);
+export function renderTty(tree: ReactElement, columns = 100, rows = 40) {
+  const stdout = new FakeStdout(columns, rows);
   const stdin = new FakeStdin();
   const stderr = new FakeStdout(columns);
   const instance = inkRender(tree, {

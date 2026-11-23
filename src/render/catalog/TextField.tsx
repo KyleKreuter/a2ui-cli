@@ -2,6 +2,7 @@ import { Box, Text, useFocus } from 'ink';
 import TextInput from 'ink-text-input';
 import { useContext, useEffect, useState } from 'react';
 import { TextInputFocusContext } from '../context.js';
+import { useRevealOnFocus } from '../reveal.js';
 import { ERROR_COLOR, FOCUS_COLOR, FOCUS_MARKER } from '../theme.js';
 import { enumOf, setterOf, textOf } from '../values.js';
 import type { InkComponentProps } from './types.js';
@@ -11,6 +12,7 @@ const MASK = '•';
 
 export function TextField({ node, props }: InkComponentProps) {
   const { isFocused } = useFocus({ autoFocus: true });
+  const ref = useRevealOnFocus(isFocused);
   const textInputFocus = useContext(TextInputFocusContext);
   const [edited, setEdited] = useState(false);
   const variant = enumOf(props.variant, VARIANTS, 'shortText');
@@ -33,7 +35,7 @@ export function TextField({ node, props }: InkComponentProps) {
   const shown = mask ? mask.repeat(value.length) : value;
 
   return (
-    <Box flexDirection="column">
+    <Box ref={ref} flexDirection="column">
       <Box>
         <Text color={FOCUS_COLOR}>{isFocused ? `${FOCUS_MARKER} ` : '  '}</Text>
         <Text color={isFocused ? FOCUS_COLOR : undefined} bold={isFocused}>

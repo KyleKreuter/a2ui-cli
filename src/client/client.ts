@@ -8,6 +8,9 @@ import {
   type ClientMessage,
   type CloseReason,
   type ServerMessage,
+  type WidgetReplies,
+  type WidgetReply,
+  type WidgetRequest,
 } from '../protocol/messages.js';
 
 /** How long `connect` waits for the `ready` message. */
@@ -42,6 +45,19 @@ export class ActionTimeoutError extends Error {
   }
 }
 
+/** The renderer rejected a widget request. */
+export class RequestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RequestError';
+  }
+}
+
+type WithoutId<T> = T extends unknown ? Omit<T, 'id'> : never;
+
+/** A widget request without its id. {@link PaneClient.request} adds the id. */
+export type WidgetRequestInput = WithoutId<WidgetRequest>;
+
 interface Waiter<T> {
   resolve(value: T): void;
   reject(error: Error): void;
@@ -59,6 +75,7 @@ export type ReadyMessage = Extract<ServerMessage, { type: 'ready' }>;
 export class PaneClient {
   private errors: string[] = [];
   private readonly pings = new Map<string, Waiter<string[]>>();
+  private readonly requests = new Map<string, Waiter<WidgetReply>>();
   private readonly actions: ActionMessage[] = [];
   private readonly actionWaiters: Waiter<ActionMessage>[] = [];
   private readonly closeWaiters: (() => void)[] = [];
@@ -153,6 +170,28 @@ export class PaneClient {
   }
 
   /**
+   * Sends a widget request and resolves with its reply. Rejects with
+   * {@link RequestError} when the renderer answers with an error for it, and
+   * with {@link RendererClosedError} when the connection ends first.
+   */
+  request<M extends WidgetRequestInput>(message: M): Promise<WidgetReplies[M['type']]> {
+    return new Promise((resolve, reject) => {
+      if (this.closedError) {
+        reject(this.closedError);
+        return;
+      }
+      const id = randomUUID();
+      this.requests.set(id, {
+        resolve: (reply) => {
+          resolve(reply as WidgetReplies[M['type']]);
+        },
+        reject,
+      });
+      this.send({ ...message, id });
+    });
+  }
+
+  /**
    * Resolves with the next action after the first confirmed `pong`. Rejects
    * with {@link RendererClosedError} when the renderer stops first, and with
    * {@link ActionTimeoutError} after `timeoutMs`.
@@ -202,9 +241,27 @@ export class PaneClient {
 
   private handle(message: ServerMessage): void {
     switch (message.type) {
-      case 'error':
-        this.errors.push(message.message);
+      case 'error': {
+        const request = message.id === undefined ? undefined : this.requests.get(message.id);
+        if (message.id !== undefined && request) {
+          this.requests.delete(message.id);
+          request.reject(new RequestError(message.message));
+        } else {
+          this.errors.push(message.message);
+        }
         return;
+      }
+      case 'added':
+      case 'updated':
+      case 'removed':
+      case 'widgets': {
+        const request = this.requests.get(message.id);
+        if (request) {
+          this.requests.delete(message.id);
+          request.resolve(message);
+        }
+        return;
+      }
       case 'pong': {
         const waiter = this.pings.get(message.id);
         if (waiter) {
@@ -243,6 +300,10 @@ export class PaneClient {
       waiter.reject(error);
     }
     this.pings.clear();
+    for (const waiter of this.requests.values()) {
+      waiter.reject(error);
+    }
+    this.requests.clear();
     for (const waiter of this.actionWaiters.splice(0)) {
       waiter.reject(error);
     }

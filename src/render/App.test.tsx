@@ -1,26 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { A2uiRuntime, PROTOCOL_VERSION } from '../a2ui/processor.js';
+import { A2uiRuntime } from '../a2ui/processor.js';
+import { WidgetBoard } from '../board/registry.js';
 import { keys, plain, renderTty, settle } from '../../test/ink.js';
 import { surfaceMessages } from '../../test/surface.js';
 import { App, EMPTY_STATE } from './App.js';
-
-function textSurface(id: string, text: string) {
-  return surfaceMessages(id, [{ id: 'root', component: 'Text', text }]);
-}
-
-function deleteSurface(surfaceId: string) {
-  return { version: PROTOCOL_VERSION, deleteSurface: { surfaceId } };
-}
+import { KEY_HELP } from './Board.js';
 
 function renderApp(messages: unknown[] = []) {
   const runtime = new A2uiRuntime();
-  expect(runtime.apply(messages)).toEqual([]);
-  const instance = renderTty(<App runtime={runtime} />);
+  const board = new WidgetBoard(runtime);
+  expect(board.apply(messages)).toEqual([]);
+  const instance = renderTty(<App board={board} />);
   let exited = false;
   void instance.waitUntilExit().then(() => {
     exited = true;
   });
-  return { ...instance, runtime, hasExited: () => exited };
+  return { ...instance, runtime, board, hasExited: () => exited };
 }
 
 async function press(stdin: { write: (data: string) => void }, ...sequence: string[]) {
@@ -43,78 +38,15 @@ const form = surfaceMessages('form', [
 ]);
 
 describe('App', () => {
-  describe('empty state', () => {
-    it('waits for UI while no surface exists', () => {
-      const { lastFrame } = renderApp();
-      expect(plain(lastFrame())).toContain(EMPTY_STATE);
-    });
-
-    it('shows a surface as soon as it is created', async () => {
-      const { lastFrame, runtime } = renderApp();
-      runtime.apply(textSurface('main', 'hello'));
-      await settle();
-      expect(plain(lastFrame())).toContain('hello');
-      expect(plain(lastFrame())).not.toContain(EMPTY_STATE);
-    });
-  });
-
-  describe('multiple surfaces', () => {
-    const two = [...textSurface('a', 'surface A'), ...textSurface('b', 'surface B')];
-
-    it('shows a tab bar and switches with Ctrl+Right and Ctrl+Left', async () => {
-      const { lastFrame, stdin } = renderApp(two);
-      await settle();
-      expect(plain(lastFrame())).toMatch(/^ a {3}b$/m);
-      expect(plain(lastFrame())).toContain('surface A');
-
-      await press(stdin, keys.ctrlRight);
-      expect(plain(lastFrame())).toContain('surface B');
-
-      await press(stdin, keys.ctrlLeft);
-      expect(plain(lastFrame())).toContain('surface A');
-    });
-
-    it('hides the tab bar for a single surface', () => {
-      const { lastFrame } = renderApp(textSurface('a', 'surface A'));
-      expect(plain(lastFrame())).not.toContain(' a ');
-    });
-
-    it('shows the next surface when the shown one is deleted', async () => {
-      const { lastFrame, runtime, stdin } = renderApp([...two, ...textSurface('c', 'surface C')]);
-      await settle();
-      await press(stdin, keys.ctrlRight);
-      expect(plain(lastFrame())).toContain('surface B');
-
-      runtime.apply([deleteSurface('b')]);
-      await settle();
-      expect(plain(lastFrame())).toContain('surface C');
-    });
-
-    it('shows the empty state when the last surface is deleted', async () => {
-      const { lastFrame, runtime } = renderApp(textSurface('a', 'surface A'));
-      runtime.apply([deleteSurface('a')]);
-      await settle();
-      expect(plain(lastFrame())).toContain(EMPTY_STATE);
-    });
-  });
-
   describe('status line', () => {
-    it('shows the last action', async () => {
-      const { lastFrame, stdin } = renderApp(form);
+    it('shows session, widget count and client count while serving', async () => {
+      const board = new WidgetBoard(new A2uiRuntime());
+      const session = { sessionId: 't', clients: 0 };
+      const { lastFrame, rerender } = renderTty(<App board={board} session={session} />);
+      expect(plain(lastFrame())).toContain('session t · 0 widgets · 0 clients');
+      rerender(<App board={board} session={{ ...session, clients: 1 }} />);
       await settle();
-      await press(stdin, keys.tab, keys.enter);
-      expect(plain(lastFrame())).toContain('last action: submit');
-    });
-
-    it('shows session, host and client count while serving', async () => {
-      const runtime = new A2uiRuntime();
-      const session = { sessionId: 't', host: 'tmux', clients: 0 };
-      const { lastFrame, rerender } = renderTty(<App runtime={runtime} session={session} />);
-      expect(plain(lastFrame())).toContain('session t · tmux · 0 clients');
-      rerender(<App runtime={runtime} session={{ ...session, clients: 1 }} />);
-      await settle();
-      expect(plain(lastFrame())).toContain('session t · tmux · 1 client');
-      expect(plain(lastFrame())).toContain('q quit');
+      expect(plain(lastFrame())).toContain('session t · 0 widgets · 1 client · ? keys · q quit');
     });
 
     it('shows no session outside serve', () => {
@@ -124,6 +56,17 @@ describe('App', () => {
   });
 
   describe('global keys', () => {
+    it('shows and hides the key list with ?', async () => {
+      const { lastFrame, stdin } = renderApp();
+      await press(stdin, '?');
+      for (const [key, effect] of KEY_HELP) {
+        expect(plain(lastFrame())).toContain(key);
+        expect(plain(lastFrame())).toContain(effect);
+      }
+      await press(stdin, '?');
+      expect(plain(lastFrame())).not.toContain(KEY_HELP[0][1]);
+    });
+
     it('quits with q while a Button has focus', async () => {
       const { stdin, hasExited } = renderApp(form);
       await settle();
@@ -134,9 +77,9 @@ describe('App', () => {
     it('types q into a focused TextField instead of quitting', async () => {
       const { stdin, hasExited, runtime } = renderApp(form);
       await settle();
-      await press(stdin, 'q');
+      await press(stdin, 'q', '?');
       expect(hasExited()).toBe(false);
-      expect(runtime.surfaces().get('form')?.dataModel.get('/name')).toBe('q');
+      expect(runtime.surfaces().get('form')?.dataModel.get('/name')).toBe('q?');
     });
 
     it('quits with Esc while no text input has focus', async () => {
@@ -160,8 +103,9 @@ describe('App', () => {
       expect(hasExited()).toBe(true);
     });
 
-    it('quits with q in the empty state', async () => {
-      const { stdin, hasExited } = renderApp();
+    it('quits with q on the empty board', async () => {
+      const { stdin, hasExited, lastFrame } = renderApp();
+      expect(plain(lastFrame())).toContain(EMPTY_STATE);
       await press(stdin, 'q');
       expect(hasExited()).toBe(true);
     });

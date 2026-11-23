@@ -3,7 +3,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FakeRenderer } from '../../test/renderer.js';
 import { socketDir } from '../../test/socket.js';
 import { PaneServer } from '../server/server.js';
-import { ActionTimeoutError, NoRendererError, PaneClient, RendererClosedError } from './client.js';
+import { CATALOG_ID, PROTOCOL_VERSION } from '../a2ui/processor.js';
+import {
+  ActionTimeoutError,
+  NoRendererError,
+  PaneClient,
+  RendererClosedError,
+  RequestError,
+} from './client.js';
 
 let tmp: { dir: string; remove: () => void };
 let socket: string;
@@ -105,5 +112,65 @@ describe('PaneClient', () => {
       connection.destroy();
     }
     await expect(action).rejects.toEqual(new RendererClosedError('lost'));
+  });
+});
+
+describe('PaneClient.request', () => {
+  const create = {
+    version: PROTOCOL_VERSION,
+    createSurface: { surfaceId: 'x', catalogId: CATALOG_ID },
+  };
+
+  it('resolves with the reply to its request', async () => {
+    const client = await connect();
+    const added = await client.request({ type: 'add', messages: [create], title: 'Build' });
+    expect(added).toMatchObject({ type: 'added', widgetId: 'w1' });
+    expect(added.id).not.toBe('');
+    await expect(client.request({ type: 'list' })).resolves.toMatchObject({
+      type: 'widgets',
+      widgets: [{ widgetId: 'w1', title: 'Build' }],
+    });
+  });
+
+  it('matches concurrent replies by id', async () => {
+    const client = await connect();
+    const [first, second] = await Promise.all([
+      client.request({ type: 'add', messages: [create] }),
+      client.request({ type: 'add', messages: [create] }),
+    ]);
+    expect([first.widgetId, second.widgetId]).toEqual(['w1', 'w2']);
+    expect(first.id).not.toBe(second.id);
+  });
+
+  it('rejects with RequestError and the message of the renderer', async () => {
+    const client = await connect();
+    await expect(client.request({ type: 'remove', widgetIds: ['w2'] })).rejects.toEqual(
+      new RequestError('widget w2 does not exist'),
+    );
+  });
+
+  it('rejects with RequestError for a request that the protocol rejects', async () => {
+    const client = await connect();
+    await expect(
+      client.request({ type: 'add', messages: [create], width: 13 }),
+    ).rejects.toBeInstanceOf(RequestError);
+  });
+
+  it('rejects a request that is still open when the connection ends', async () => {
+    const client = await connect();
+    await client.confirm();
+    // Drop the connection on the server side, so that no reply can arrive.
+    for (const connection of (server as unknown as { clients: Set<{ destroy(): void }> }).clients) {
+      connection.destroy();
+    }
+    const pending = client.request({ type: 'list' });
+    await expect(pending).rejects.toEqual(new RendererClosedError('lost'));
+  });
+
+  it('rejects a request after the renderer stopped', async () => {
+    const client = await connect();
+    await server.stop('user');
+    await client.closed();
+    await expect(client.request({ type: 'list' })).rejects.toEqual(new RendererClosedError('user'));
   });
 });

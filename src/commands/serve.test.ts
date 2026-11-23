@@ -76,7 +76,7 @@ describe('runServe', () => {
       },
     });
     await expect.poll(() => plain(stdout.frames.join(''))).toContain('Hello from the socket');
-    expect(plain(stdout.frames.join(''))).toContain('session t · tmux · 1 client');
+    expect(plain(stdout.frames.join(''))).toContain('session t · 1 widget · 1 client');
 
     client.send({ type: 'close' });
     expect(await client.next('closed')).toEqual({ type: 'closed', reason: 'client' });

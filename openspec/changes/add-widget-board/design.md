@@ -39,6 +39,8 @@ Alternative: a masonry layout that fills gaps under short widgets. Rejected for 
 
 The board renders all widgets into a content box inside a viewport box with the terminal height minus the status line, `overflowY: "hidden"` and `contentOffsetY` set to the scroll offset. After each render, the board measures the content box with `measureElement` and clamps the offset to `content.height - viewport.clientHeight`, as the Ink documentation recommends. `PageUp`, `PageDown`, `Home` and `End` scroll by page and to the ends; `Up` and `Down` scroll by line while no text input has focus. `Tab` focus works across all widgets as in M1 and scrolls the focused component into view. When content changes, the scroll offset stays, unless it would pass the new end.
 
+Spike result (task 2.1, Ink 8.0.0): a column of 200 rows in a 20-row terminal, with one row changing every 100 ms, scrolls with `contentOffsetY` as designed. `End` shows row 199 as the last row above the status line, `Home` shows row 0, and every frame has exactly 20 rows, one frame per update. Two details matter. First, the viewport needs an explicit height (terminal rows minus the status line) and `flexShrink: 0`; with `flexGrow` alone, Yoga gives it the full terminal height and the status line overlaps the last row. Second, the board must fill the terminal exactly: Ink clears the whole screen for every frame that is higher than the terminal, which flickers, and writes only changed lines for a frame of exactly the terminal height.
+
 ### Frame
 
 Each widget has a rounded border. The top border line shows the title (`--title`), the label and the widget id, for example `Build · api-agent · w3`, so the user can refer to a widget by id. 

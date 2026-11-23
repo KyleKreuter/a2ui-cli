@@ -8,6 +8,22 @@ describe('parseClientLine', () => {
     [{ type: 'focus' }],
     [{ type: 'close' }],
     [{ type: 'ping', id: 'abc' }],
+    [{ type: 'add', id: 'a1', messages: [] }],
+    [
+      {
+        type: 'add',
+        id: 'a1',
+        messages: [{ version: '1.0' }],
+        width: 12,
+        title: 'Build',
+        owner: 'tmux:%3',
+        label: 'api-agent',
+      },
+    ],
+    [{ type: 'update', id: 'u1', widgetId: 'w1', messages: [] }],
+    [{ type: 'remove', id: 'r1', widgetIds: ['w1', 'w2'] }],
+    [{ type: 'remove', id: 'r1', owner: 'tmux:%3' }],
+    [{ type: 'list', id: 'l1' }],
   ])('accepts %j', (message) => {
     expect(parseClientLine(JSON.stringify(message))).toEqual({ ok: true, message });
   });
@@ -42,6 +58,30 @@ describe('parseClientLine', () => {
     expect(result.ok ? '' : result.error).toContain(error);
   });
 
+  it.each([
+    ['{"type":"add","id":"a1","messages":[],"width":0}', 'width'],
+    ['{"type":"add","id":"a1","messages":[],"width":13}', 'width'],
+    ['{"type":"add","id":"a1","messages":[],"width":1.5}', 'width'],
+    ['{"type":"add","id":"","messages":[]}', 'id'],
+    ['{"type":"update","id":"u1","messages":[]}', 'widgetId'],
+    ['{"type":"remove","id":"r1"}', 'Expected either "widgetIds" or "owner"'],
+    ['{"type":"remove","id":"r1","widgetIds":["w1"],"owner":"x"}', 'Expected either'],
+    ['{"type":"remove","id":"r1","widgetIds":[]}', 'widgetIds'],
+    ['{"type":"list"}', 'id'],
+  ])('rejects the widget request %s', (line, error) => {
+    const result = parseClientLine(line);
+    expect(result).toMatchObject({ ok: false, source: 'protocol' });
+    expect(result.ok ? '' : result.error).toContain(error);
+  });
+
+  it('keeps the request id of an invalid widget request', () => {
+    expect(parseClientLine('{"type":"add","id":"a7","messages":[],"width":13}')).toMatchObject({
+      ok: false,
+      id: 'a7',
+    });
+    expect(parseClientLine('{"type":"add","id":7}')).not.toHaveProperty('id');
+  });
+
   it('rejects server messages', () => {
     expect(parseClientLine('{"type":"pong","id":"a"}')).toMatchObject({ ok: false });
   });
@@ -74,6 +114,19 @@ describe('parseServerLine', () => {
       },
     ],
     [{ type: 'error', message: 'bad', source: 'render' }],
+    [{ type: 'error', id: 'u1', message: 'widget w9 does not exist', source: 'widget' }],
+    [{ type: 'added', id: 'a1', widgetId: 'w1' }],
+    [{ type: 'updated', id: 'u1' }],
+    [{ type: 'removed', id: 'r1', widgetIds: ['w1', 'w4'] }],
+    [
+      {
+        type: 'widgets',
+        id: 'l1',
+        widgets: [
+          { widgetId: 'w1', title: 'Build', label: null, owner: null, width: 6, position: 0 },
+        ],
+      },
+    ],
     [{ type: 'closed', reason: 'user' }],
   ])('accepts %j', (message) => {
     expect(parseServerLine(JSON.stringify(message))).toEqual({ ok: true, message });
