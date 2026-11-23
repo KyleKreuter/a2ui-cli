@@ -22,6 +22,11 @@ export interface SessionOptions {
   readonly session?: string;
 }
 
+export interface SendOptions extends SessionOptions {
+  /** Remove all surfaces before the input messages. */
+  readonly clear?: boolean;
+}
+
 export const defaultClientIo = (): ClientIo => ({
   stdin: process.stdin,
   stdout: process.stdout,
@@ -103,8 +108,19 @@ export async function connect(session: Session): Promise<PaneClient> {
   }
 }
 
-/** Sends every message and fails with exit code 4 when the renderer rejects one. */
-export async function deliver(client: PaneClient, messages: readonly unknown[]): Promise<void> {
+/**
+ * Sends every message and fails with exit code 4 when the renderer rejects one.
+ * With `clear`, removes all surfaces first. The server handles one connection
+ * in order, so the messages see the cleared renderer.
+ */
+export async function deliver(
+  client: PaneClient,
+  messages: readonly unknown[],
+  { clear = false }: { readonly clear?: boolean } = {},
+): Promise<void> {
+  if (clear) {
+    client.send({ type: 'clear' });
+  }
   for (const message of messages) {
     client.send({ type: 'a2ui', message });
   }

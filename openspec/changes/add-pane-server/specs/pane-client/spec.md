@@ -24,6 +24,21 @@ Lets scripts send A2UI messages to a running renderer and wait for the user's an
 - **WHEN** line 3 of the input is not valid JSON
 - **THEN** the command writes an error that names line 3 to stderr, sends nothing, and exits with code 4
 
+### Requirement: Clear before sending
+`send` and `ask` SHALL accept `--clear`. With `--clear`, the command SHALL remove all surfaces of the renderer before it sends the input messages, on the same connection, so that the input can create surfaces with ids that already exist.
+
+#### Scenario: Show the same file twice
+- **WHEN** the renderer for session `t` shows the surface `confirm` from `examples/confirm.jsonl` and the user runs `a2ui-term ask --session t --clear examples/confirm.jsonl`
+- **THEN** the renderer shows `confirm` again and the command waits for an action
+
+#### Scenario: Without --clear
+- **WHEN** the renderer for session `t` shows the surface `confirm` and the user runs `a2ui-term send --session t examples/confirm.jsonl`
+- **THEN** the command writes the renderer's error message to stderr and exits with code 4
+
+#### Scenario: Clear with empty input
+- **WHEN** the user pipes empty input into `a2ui-term send --session t --clear`
+- **THEN** the renderer shows the empty state and the command exits with code 0
+
 ### Requirement: Ask for a user action
 `a2ui-term ask [--session <id>] [--timeout <seconds>] [file|-]` SHALL send the messages like `send`, then wait for the next action event from the renderer and write it to stdout as one JSON object.
 

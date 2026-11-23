@@ -128,16 +128,22 @@ Save this message as `hi.jsonl` and run `a2ui-term demo hi.jsonl`:
    a2ui-term close --session demo
    ```
 
-| Command                      | Does                                                                                                              |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `serve`                      | Renders the session's surfaces in this terminal until you press `q`, a client sends `close`, or it gets a signal. |
-| `send [file]`                | Sends A2UI messages and exits when the renderer has accepted all of them.                                         |
-| `ask [file] [--timeout <s>]` | Like `send`, then waits for the next user action and prints it as JSON.                                           |
-| `close`                      | Stops the renderer. Succeeds also when no renderer runs.                                                          |
+| Command                                | Does                                                                                                              |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `serve`                                | Renders the session's surfaces in this terminal until you press `q`, a client sends `close`, or it gets a signal. |
+| `send [file] [--clear]`                | Sends A2UI messages and exits when the renderer has accepted all of them. `--clear` removes all surfaces first.   |
+| `ask [file] [--clear] [--timeout <s>]` | Like `send`, then waits for the next user action and prints it as JSON.                                           |
+| `close`                                | Stops the renderer. Succeeds also when no renderer runs.                                                          |
 
 `send` and `ask` read JSON Lines or a JSON array, from a file or from stdin (`-` or no file). They parse the whole input first and send nothing if a line is invalid. `ask` ignores actions that happened before it sent its messages.
 
-A surface id can exist only once per renderer, so a second `ask` with the same file fails with `Surface confirm already exists`. To show the same file again, send a `deleteSurface` message for the surface first, or restart `serve`.
+A surface id can exist only once per renderer, so a second `ask` with the same file fails with `Surface confirm already exists`. To show the same file again, pass `--clear`: it removes all surfaces before the new messages arrive. The user sees no empty screen in between.
+
+```bash
+a2ui-term ask --clear --timeout 60 examples/confirm.jsonl
+```
+
+`a2ui-term send --clear < /dev/null` only removes all surfaces.
 
 Without `--session`, the commands use `$A2UI_TERM_SESSION`, then an id derived from the current tmux, Zellij, WezTerm or kitty pane, then `default`. The renderer status line shows the session, the host and the number of connected clients.
 
@@ -154,7 +160,7 @@ Without `--session`, the commands use `$A2UI_TERM_SESSION`, then an id derived f
 For example, a shell script can branch on the answer:
 
 ```bash
-if answer=$(a2ui-term ask --timeout 60 examples/confirm.jsonl); then
+if answer=$(a2ui-term ask --clear --timeout 60 examples/confirm.jsonl); then
   echo "User chose: $answer"
 else
   echo "No answer (exit code $?)"

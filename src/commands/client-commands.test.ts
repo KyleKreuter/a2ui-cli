@@ -5,9 +5,10 @@ import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { FakeStdin, FakeStdout, keys, plain } from '../../test/ink.js';
+import { FakeStdin, FakeStdout, keys, plain, settle } from '../../test/ink.js';
 import { socketDir } from '../../test/socket.js';
 import { CATALOG_ID, PROTOCOL_VERSION } from '../a2ui/processor.js';
+import { EMPTY_STATE } from '../render/App.js';
 import { readState } from '../session/state.js';
 import { runAsk } from './ask.js';
 import type { ClientIo } from './client-command.js';
@@ -56,11 +57,16 @@ function input(name: string, lines: readonly unknown[]): string {
   return path;
 }
 
-function clientIo() {
+/** Client streams. With `stdinText`, stdin is a pipe that holds it; else a terminal. */
+function clientIo(stdinText?: string) {
   let stdout = '';
   let stderr = '';
-  const stdin = new PassThrough() as unknown as NodeJS.ReadStream;
-  stdin.isTTY = true;
+  const pipe = new PassThrough();
+  const stdin = pipe as unknown as NodeJS.ReadStream;
+  stdin.isTTY = stdinText === undefined;
+  if (stdinText !== undefined) {
+    pipe.end(stdinText);
+  }
   const io: ClientIo = {
     stdin,
     stdout: writer((chunk) => (stdout += chunk)),
@@ -176,6 +182,49 @@ describe('client commands against serve', () => {
     serve.stdin.write('q');
     await expect(exit).resolves.toBe(ExitCode.userClosed);
     expect(client.stderr()).toBe('a2ui-term: the user closed the renderer\n');
+    await serve.exit;
+  });
+
+  it('send without --clear fails for a surface id that exists', async () => {
+    const serve = await startServe();
+    const file = input('ok.jsonl', confirmSurface);
+    await expect(runSend(file, { session: 't' }, clientIo().io)).resolves.toBe(ExitCode.ok);
+    const client = clientIo();
+    await expect(runSend(file, { session: 't' }, client.io)).resolves.toBe(ExitCode.inputError);
+    expect(client.stderr()).toContain('Surface confirm already exists');
+    await runClose({ session: 't' }, clientIo().io);
+    await serve.exit;
+  });
+
+  it('ask --clear shows the same file again', async () => {
+    const serve = await startServe();
+    const file = input('ask.jsonl', confirmSurface);
+    await expect(runSend(file, { session: 't' }, clientIo().io)).resolves.toBe(ExitCode.ok);
+    const client = clientIo();
+    const exit = runAsk(file, { session: 't', clear: true }, client.io);
+    // Clear and create land in one render, so the screen does not change. Without
+    // --clear, ask would fail with exit code 4 right away.
+    await expect(Promise.race([exit, settle(300).then(() => 'waiting')])).resolves.toBe('waiting');
+    serve.stdin.write(keys.enter);
+    await expect(exit).resolves.toBe(ExitCode.ok);
+    expect(JSON.parse(client.stdout())).toMatchObject({ name: 'ok', surfaceId: 'confirm' });
+    expect(client.stderr()).toBe('');
+    await runClose({ session: 't' }, clientIo().io);
+    await serve.exit;
+  });
+
+  it('send --clear with empty input shows the empty state', async () => {
+    const serve = await startServe();
+    await runSend(input('ok.jsonl', confirmSurface), { session: 't' }, clientIo().io);
+    await expect.poll(serve.screen).toContain('Confirm me');
+    const client = clientIo('');
+    await expect(runSend(undefined, { session: 't', clear: true }, client.io)).resolves.toBe(
+      ExitCode.ok,
+    );
+    await expect
+      .poll(() => serve.screen().slice(serve.screen().lastIndexOf('Confirm me')))
+      .toContain(EMPTY_STATE);
+    await runClose({ session: 't' }, clientIo().io);
     await serve.exit;
   });
 

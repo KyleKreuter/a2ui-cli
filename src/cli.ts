@@ -17,6 +17,9 @@ const sessionOption = () =>
     'session id (default: $A2UI_TERM_SESSION, then the host pane, then "default")',
   );
 
+const clearOption = () =>
+  new Option('--clear', 'remove all surfaces before sending, so the input can reuse surface ids');
+
 const inputArgument = [
   '[file]',
   'JSON Lines or JSON array file; "-" or nothing reads stdin',
@@ -43,7 +46,8 @@ program
   .description('Send A2UI messages to the session renderer.')
   .argument(...inputArgument)
   .addOption(sessionOption())
-  .action(async (file: string | undefined, options: { session?: string }) => {
+  .addOption(clearOption())
+  .action(async (file: string | undefined, options: { session?: string; clear?: boolean }) => {
     process.exitCode = await runSend(file, options);
   });
 
@@ -52,14 +56,20 @@ program
   .description('Send A2UI messages, then print the next user action as JSON.')
   .argument(...inputArgument)
   .addOption(sessionOption())
+  .addOption(clearOption())
   .addOption(
     new Option('--timeout <seconds>', 'give up after this many seconds (exit code 2)').argParser(
       parseSeconds,
     ),
   )
-  .action(async (file: string | undefined, options: { session?: string; timeout?: number }) => {
-    process.exitCode = await runAsk(file, options);
-  });
+  .action(
+    async (
+      file: string | undefined,
+      options: { session?: string; clear?: boolean; timeout?: number },
+    ) => {
+      process.exitCode = await runAsk(file, options);
+    },
+  );
 
 program
   .command('close')

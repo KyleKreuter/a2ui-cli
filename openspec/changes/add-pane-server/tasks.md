@@ -21,6 +21,7 @@
 - [x] 4.1 Implement `src/client/` with `connect`, `send`, `confirm` (ping ordering) and `waitForAction` and verify unit tests against an in-process server
 - [x] 4.2 Implement `send`, `ask` (with `--timeout`) and `close` with the exit codes from `src/commands/exit-codes.ts` and verify end-to-end tests for success, renderer error (4), malformed input (4), timeout (2), user close (3) and no renderer (1)
 - [x] 4.3 Document `serve`, `send`, `ask`, `close`, the exit codes and the socket protocol in `README.md` and `docs/protocol.md`, and verify the documented two-terminal example runs as written
+- [x] 4.4 Add `--clear` to `send` and `ask` (send `clear` before the input on the same connection) and verify end-to-end tests for showing the same file twice, the error without `--clear` and clearing with empty input
 
 ## 5. Acceptance
 

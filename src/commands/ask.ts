@@ -6,11 +6,11 @@ import {
   readMessages,
   runClientCommand,
   type ClientIo,
-  type SessionOptions,
+  type SendOptions,
 } from './client-command.js';
 import { ExitCode } from './exit-codes.js';
 
-export interface AskOptions extends SessionOptions {
+export interface AskOptions extends SendOptions {
   /** Seconds to wait for an action. Waits without limit when undefined. */
   readonly timeout?: number;
 }
@@ -26,7 +26,7 @@ export async function runAsk(
     const session = locateSession(options.session, io.env);
     const client = await connect(session);
     try {
-      await deliver(client, messages);
+      await deliver(client, messages, options);
       const timeoutMs = options.timeout === undefined ? undefined : options.timeout * 1000;
       const { type, ...action } = await client.waitForAction(timeoutMs);
       io.stdout.write(`${JSON.stringify(action)}\n`);
