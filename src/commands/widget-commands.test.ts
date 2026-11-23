@@ -132,9 +132,10 @@ describe('add', () => {
     await add('a', { TMUX_PANE: '%3' }, { label: 'api-agent', title: 'Build' });
     await add('b', { TMUX_PANE: '%3', A2UI_TERM_LABEL: 'env-label' });
     await add('c', { TMUX_PANE: '%5' });
+    // Ink renders after the reply to add, so wait for each frame line.
     await expect.poll(frame).toContain('╭─ Build · api-agent · w1 ─');
-    expect(frame()).toContain('╭─ env-label · w2 ─');
-    expect(frame()).toContain('╭─ tmux:%5 · w3 ─');
+    await expect.poll(frame).toContain('╭─ env-label · w2 ─');
+    await expect.poll(frame).toContain('╭─ tmux:%5 · w3 ─');
   });
 
   it('exits with 1 without a renderer', async () => {
