@@ -82,4 +82,5 @@ Use TypeScript 6.0. `typescript-eslint@8` declares `typescript <6.1.0` as peer, 
 - [`web_core` changes its node layer API in a minor release] → Exact version pins; the `a2ui/` wrapper is the only module that imports `web_core` state types; renderer tests cover each component.
 - [`web_core` pulls in `lit` and `zod@3` as transitive dependencies, which the terminal renderer does not use] → Accept. `zod@3` is nested and does not conflict with the project's own `zod`.
 - [Ink focus order follows mount order, which differs from tree order after a component is added to an existing tree] → Accept for M1. M5 revisits focus handling.
+- [Ink 8 handles one input chunk as one key, so `\t\t` or three Backspaces sent in one write (for example by `tmux send-keys` with several keys) act as one key press] → Accept for M1; interactive typing sends one key per write. Tests and scripted checks send one key per write.
 - [`ink-text-input` was last released in May 2024] → It depends on `ink` and `react` only through peers. If it breaks with Ink 8, replace it with a small in-house component; the TextField mapping is the only user.

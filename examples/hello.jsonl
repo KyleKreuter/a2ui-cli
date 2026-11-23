@@ -1,0 +1,2 @@
+{"version":"v0.9","createSurface":{"surfaceId":"hello","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"hello","components":[{"id":"root","component":"Card","child":"content"},{"id":"content","component":"Column","children":["title","body","note"]},{"id":"title","component":"Text","text":"Hello from A2UI","variant":"h1"},{"id":"body","component":"Text","text":"This surface came from examples/hello.jsonl."},{"id":"note","component":"Text","text":"Press q to quit.","variant":"caption"}]}}

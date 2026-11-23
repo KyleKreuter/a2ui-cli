@@ -24,10 +24,10 @@
 
 ## 4. Demo command and examples
 
-- [ ] 4.1 Implement `src/cli.ts` with `commander` and `src/commands/demo.ts` (file or stdin, `/dev/tty` for keys when stdin is a pipe, alternate screen, terminal restore on exit and on signals) and verify `cat examples/form.jsonl | npm run dev -- demo` shows the form and responds to `Tab`
-- [ ] 4.2 Add `examples/hello.jsonl`, `form.jsonl`, `confirm.jsonl` and `progress.jsonl` (progress sends several `updateDataModel` messages) and verify a test applies each example without errors
-- [ ] 4.3 Document installation, `demo` usage and the example files in `README.md` and verify each documented command runs as written
+- [x] 4.1 Implement `src/cli.ts` with `commander` and `src/commands/demo.ts` (file or stdin, `/dev/tty` for keys when stdin is a pipe, alternate screen, terminal restore on exit and on signals) and verify `cat examples/form.jsonl | npm run dev -- demo` shows the form and responds to `Tab`
+- [x] 4.2 Add `examples/hello.jsonl`, `form.jsonl`, `confirm.jsonl` and `progress.jsonl` (progress sends several `updateDataModel` messages) and verify a test applies each example without errors
+- [x] 4.3 Document installation, `demo` usage and the example files in `README.md` and verify each documented command runs as written
 
 ## 5. Acceptance
 
-- [ ] 5.1 Run `cat examples/form.jsonl | a2ui-term demo` from the built package, move focus with `Tab`, press the submit Button, and verify the log file contains the `submit` action with the typed values
+- [x] 5.1 Run `cat examples/form.jsonl | a2ui-term demo` from the built package, move focus with `Tab`, press the submit Button, and verify the log file contains the `submit` action with the typed values

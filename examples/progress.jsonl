@@ -1,0 +1,10 @@
+{"version":"v0.9","createSurface":{"surfaceId":"build","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"build","path":"/","value":{"step":"Installing dependencies","percent":"0%"}}}
+{"version":"v0.9","updateComponents":{"surfaceId":"build","components":[{"id":"root","component":"Column","children":["title","status","line","percent"]},{"id":"title","component":"Text","text":"Build","variant":"h2"},{"id":"status","component":"Row","children":["status-label","status-value"]},{"id":"status-label","component":"Text","text":"Step:","variant":"caption"},{"id":"status-value","component":"Text","text":{"path":"/step"}},{"id":"line","component":"Divider"},{"id":"percent","component":"Text","text":{"path":"/percent"}}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"build","path":"/percent","value":"25%"}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"build","path":"/step","value":"Compiling"}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"build","path":"/percent","value":"60%"}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"build","path":"/step","value":"Running tests"}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"build","path":"/percent","value":"90%"}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"build","path":"/step","value":"Done"}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"build","path":"/percent","value":"100%"}}
