@@ -24,4 +24,4 @@
 
 ## 5. Acceptance
 
-- [ ] 5.1 Start `a2ui-term serve` in a tmux pane, run `examples/board.sh` from two other panes at the same time, scroll the board, and verify that both owners' widgets appear side by side, update in place and disappear with `remove --mine`. Archive `add-local-rendering` and `add-pane-server` before archiving this change
+- [x] 5.1 Start `a2ui-term serve` in a tmux pane, run `examples/board.sh` from two other panes at the same time, scroll the board, and verify that both owners' widgets appear side by side, update in place and disappear with `remove --mine`. Archive `add-local-rendering` and `add-pane-server` before archiving this change
