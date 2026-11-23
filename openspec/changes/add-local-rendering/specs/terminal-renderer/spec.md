@@ -59,7 +59,7 @@ A focused Button SHALL trigger its action when the user presses `Enter` or `Spac
 - **THEN** the runtime emits an action event with name `confirm`
 
 ### Requirement: Text input
-A focused TextField SHALL accept typed characters, `Backspace`, and cursor movement, and SHALL show its label and placeholder. The `obscured` variant SHALL mask the typed characters.
+A focused TextField SHALL accept typed characters, `Backspace`, and cursor movement, and SHALL show its label. The `obscured` variant SHALL mask the typed characters. The v0.9 TextField has no placeholder property, so the renderer shows none.
 
 #### Scenario: Type into a field
 - **WHEN** an empty TextField has focus and the user types `abc`
@@ -75,6 +75,19 @@ A focused CheckBox SHALL toggle its bound boolean value when the user presses `S
 #### Scenario: Toggle a checkbox
 - **WHEN** an unchecked CheckBox has focus and the user presses `Space`
 - **THEN** the CheckBox shows as checked and its bound value is `true`
+
+### Requirement: Validation checks
+The renderer SHALL apply the `checks` of a component as resolved by `web_core`. A Button whose checks fail SHALL render dimmed and SHALL NOT trigger its action. A TextField whose checks fail SHALL show the check messages after the user has edited it.
+
+#### Scenario: Button with a failing check
+- **WHEN** a Button has a `required` check on `/name` and `/name` is empty
+- **AND** the Button has focus and the user presses `Enter`
+- **THEN** the runtime emits no action event
+
+#### Scenario: TextField with a failing check
+- **WHEN** a TextField has a `required` check with the message `Name is required`
+- **AND** the user types a character and deletes it again
+- **THEN** the terminal shows `Name is required` below the field
 
 ### Requirement: Unsupported components
 The renderer SHALL render a component type it does not support as a visible placeholder `[unsupported: <type>]` and SHALL keep rendering the rest of the surface.

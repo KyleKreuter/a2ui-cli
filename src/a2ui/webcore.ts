@@ -14,6 +14,8 @@ export {
   isComponentNode,
   isWritable,
   peekValue,
+  setValue,
+  signal,
 } from '@a2ui/web_core/v0_9';
 export type {
   ActionPayload,

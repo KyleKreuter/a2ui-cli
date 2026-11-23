@@ -18,7 +18,8 @@ function updateDataModel(surfaceId: string, path: string, value: unknown) {
 
 function setup() {
   const events: ActionEvent[] = [];
-  const runtime = new A2uiRuntime((event) => events.push(event));
+  const runtime = new A2uiRuntime();
+  runtime.onAction((event) => events.push(event));
   return { runtime, events };
 }
 

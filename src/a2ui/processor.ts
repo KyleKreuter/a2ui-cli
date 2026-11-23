@@ -45,11 +45,23 @@ type Unsubscribe = () => void;
  */
 export class A2uiRuntime {
   readonly processor: MessageProcessor;
+  private readonly actionHandlers = new Set<ActionHandler>();
 
-  constructor(onAction: ActionHandler) {
+  constructor() {
     this.processor = new MessageProcessor([basicCatalog], (payload) => {
-      onAction(this.toActionEvent(payload));
+      const event = this.toActionEvent(payload);
+      for (const handler of this.actionHandlers) {
+        handler(event);
+      }
     });
+  }
+
+  /** Calls `handler` for every action the user triggers on any surface. */
+  onAction(handler: ActionHandler): Unsubscribe {
+    this.actionHandlers.add(handler);
+    return () => {
+      this.actionHandlers.delete(handler);
+    };
   }
 
   /** Parses JSON Lines or a JSON array and applies every valid message. */
@@ -87,6 +99,7 @@ export class A2uiRuntime {
   }
 
   dispose(): void {
+    this.actionHandlers.clear();
     this.processor.dispose();
   }
 

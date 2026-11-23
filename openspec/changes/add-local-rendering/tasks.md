@@ -16,11 +16,11 @@
 
 ## 3. Terminal renderer
 
-- [ ] 3.1 Implement `src/render/useSignal.ts` and verify a test updates a signal and observes one re-render
-- [ ] 3.2 Implement `src/render/catalog/registry.ts`, the placeholder component and `Surface.tsx` (one `NodeResolver` per surface) and verify a snapshot test renders `[unsupported: Chart]` next to a supported sibling
-- [ ] 3.3 Implement Text, Row, Column, Card and Divider and verify snapshot tests with `ink-testing-library` for each, including heading and caption variants and the Divider width
-- [ ] 3.4 Implement Button, TextField (including `obscured`) and CheckBox with focus marking and verify input tests: `Tab`/`Shift+Tab` order, `Enter`/`Space` on Button, typing into TextField, `Space` on CheckBox, and the resulting data model values and action events
-- [ ] 3.5 Implement `App.tsx`: empty state, surface tabs with `Ctrl+Left`/`Ctrl+Right`, status line with the last action, and global keys that skip `q`/`Esc` while a TextField has focus; verify tests for each `terminal-renderer` and `local-preview` key scenario
+- [x] 3.1 Implement `src/render/useSignal.ts` and verify a test updates a signal and observes one re-render
+- [x] 3.2 Implement `src/render/catalog/registry.ts`, the placeholder component and `Surface.tsx` (one `NodeResolver` per surface) and verify a snapshot test renders `[unsupported: Chart]` next to a supported sibling
+- [x] 3.3 Implement Text, Row, Column, Card and Divider and verify snapshot tests with `ink-testing-library` for each, including heading and caption variants and the Divider width
+- [x] 3.4 Implement Button, TextField (including `obscured`) and CheckBox with focus marking and verify input tests: `Tab`/`Shift+Tab` order, `Enter`/`Space` on Button, typing into TextField, `Space` on CheckBox, and the resulting data model values and action events
+- [x] 3.5 Implement `App.tsx`: empty state, surface tabs with `Ctrl+Left`/`Ctrl+Right`, status line with the last action, and global keys that skip `q`/`Esc` while a TextField has focus; verify tests for each `terminal-renderer` and `local-preview` key scenario
 
 ## 4. Demo command and examples
 
