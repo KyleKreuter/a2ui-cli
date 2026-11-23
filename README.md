@@ -1,8 +1,12 @@
 # a2ui-term
 
-Render [A2UI](https://a2ui.org) surfaces in a terminal pane, and drive them from scripts, the shell, or coding agents over MCP.
+A live [A2UI](https://a2ui.org) board next to your coding agents in the terminal. Agents, or any script, place widgets on it with shell commands: progress, results, charts and questions. Each widget gets an id, which the agent uses to update or remove it, and the user's answers come back as JSON.
 
 > **Status:** early development. Milestones M1 (local rendering with `a2ui-term demo`) and M2 (`serve`, `send`, `ask`, `close`) are implemented. The package is not on npm yet. The design lives in [`openspec/changes/`](openspec/changes/).
+
+## Why a board
+
+Claude Code, Codex and GitHub Copilot CLI can already ask the user a question with their built-in tools, and some show their own task list. a2ui-term does not replace that. It adds one pane that all your agents share while they work: the progress of each agent's spec side by side, a chart that grows with every test run, a question with context that waits until you have time. You scroll the board, arrange the widgets and close the ones you no longer need. Everything goes through plain commands, so every agent with a shell tool can use it, without an MCP server.
 
 ## What it does
 
@@ -15,11 +19,15 @@ Available now:
 
 Planned (see [Roadmap](#roadmap)):
 
-- Opens the renderer in a new pane next to you: tmux first, then Zellij, WezTerm and kitty. Other hosts plug in as TOML files or external programs.
-- Runs as an MCP server (`a2ui-term mcp`) so that agents such as Claude Code, GitHub Copilot CLI and Codex can ask the user through terminal UI.
-- Accepts A2UI Express, a compact UI notation that costs agents fewer tokens than A2UI JSON.
+- One scrollable board in a 12-column grid. `a2ui-term add` places a widget and prints its id; `update`, `set`, `remove` and `list` work with that id.
+- Opens the board in tmux the first time an agent needs it, without taking the focus, and marks the widgets of agents whose pane has closed.
+- `ask` shows a question as a widget and returns only the answer to that widget. A history of the user's actions with `a2ui-term events` keeps answers after an agent's tool call has timed out. `a2ui-term guide` and an Agent Skill teach agents the interface.
+- Arrange widgets with the mouse: scroll with the wheel, drag a widget by its title, close it with `[×]`. A keyboard move mode does the same without a mouse.
+- Renders the whole A2UI 1.0 basic catalog: lists, tabs, modals, choices, sliders and icons.
+- Draws charts from the A2UI `VegaChart` component, for a subset of Vega-Lite.
+- Supports Zellij, WezTerm and kitty after tmux. Other hosts plug in as TOML files or external programs.
 
-a2ui-term builds only on the official A2UI packages: `@a2ui/web_core` for protocol and state, and `@a2ui/agent` for Express compilation.
+a2ui-term builds only on the official A2UI package `@a2ui/web_core` for protocol and state.
 
 ## Install
 
@@ -173,13 +181,18 @@ To write your own client in another language, see [`docs/protocol.md`](docs/prot
 
 Each milestone is one OpenSpec change with a proposal, specs, a design and tasks.
 
-| Milestone | Change                                                                   | Scope                                                                         |
-| --------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| M1        | [`add-local-rendering`](openspec/changes/add-local-rendering/)           | Project setup, runtime, Ink renderer for 8 components, `demo`                 |
-| M2        | [`add-pane-server`](openspec/changes/add-pane-server/)                   | Sessions, socket protocol, `serve`, `send`, `ask`, `close`                    |
-| M3        | [`add-host-adapters`](openspec/changes/add-host-adapters/)               | Host adapters (tmux, TOML, external programs), `open`, `hosts`, configuration |
-| M4        | [`add-express-and-mcp`](openspec/changes/add-express-and-mcp/)           | Express input, `compile`, MCP server, `doctor`                                |
-| M5        | [`extend-catalog-and-hosts`](openspec/changes/extend-catalog-and-hosts/) | Remaining components, Zellij, WezTerm, kitty, npm release                     |
+| Milestone | Change                                                             | Scope                                                                                      |
+| --------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| M1        | [`add-local-rendering`](openspec/changes/add-local-rendering/)     | Project setup, runtime, Ink renderer for 8 components, `demo`                              |
+| M2        | [`add-pane-server`](openspec/changes/add-pane-server/)             | Sessions, socket protocol, `serve`, `send`, `ask`, `close`                                 |
+| M3        | [`add-widget-board`](openspec/changes/add-widget-board/)           | Shared board with a 12-column grid and scrolling, `add`, `update`, `set`, `remove`, `list` |
+| M4        | [`add-tmux-board`](openspec/changes/add-tmux-board/)               | Board pane in tmux, `open`, automatic launch, ended widgets                                |
+| M5        | [`add-agent-workflow`](openspec/changes/add-agent-workflow/)       | `ask` on widgets, action history with `events`, `guide`, Agent Skill, `doctor`             |
+| M6        | [`add-mouse-arrangement`](openspec/changes/add-mouse-arrangement/) | Mouse wheel, clicks, drag to arrange, close mark, keyboard move mode                       |
+| M7        | [`extend-basic-catalog`](openspec/changes/extend-basic-catalog/)   | Remaining basic catalog components, stable focus, help overlay                             |
+| M8        | [`add-terminal-charts`](openspec/changes/add-terminal-charts/)     | `VegaChart` with a Vega-Lite subset, live chart updates                                    |
+| M9        | [`prepare-release`](openspec/changes/prepare-release/)             | License, package contents, changelog, npm release with provenance                          |
+| M10       | [`add-more-hosts`](openspec/changes/add-more-hosts/)               | Zellij, WezTerm, kitty, TOML and external adapters, `hosts`, configuration file            |
 
 ## Development
 

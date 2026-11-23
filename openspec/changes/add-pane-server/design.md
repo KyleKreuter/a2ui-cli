@@ -25,7 +25,7 @@ M1 (`add-local-rendering`) provides the runtime wrapper and the Ink renderer. Th
 - `src/protocol/lines.ts`: a line splitter for `net.Socket` streams with the 4 MiB limit. M1's JSONL codec handles file and stdin input.
 - `src/session/`: id resolution, paths, directory checks, state file, stale socket detection.
 - `src/server/`: `net.Server`, client set, broadcast, dispatch of client messages to the runtime.
-- `src/client/`: a small promise-based client (`connect`, `send`, `confirm`, `waitForAction`), reused by `send`, `ask`, `close`, and by the MCP server in M4.
+- `src/client/`: a small promise-based client (`connect`, `send`, `confirm`, `waitForAction`), reused by `send`, `ask`, `close`, and by the widget and agent workflow commands from M3 and M5.
 
 ### Acknowledgement through ping ordering
 
@@ -51,7 +51,7 @@ The derived id is `<host>-<pane id>` with characters outside `[A-Za-z0-9._-]` re
 
 ### Exit codes
 
-Exit codes are constants in `src/commands/exit-codes.ts`. Code `4` covers input errors of every kind, including Express compile errors added in M4.
+Exit codes are constants in `src/commands/exit-codes.ts`. Code `4` covers input errors of every kind.
 
 ## Risks / Trade-offs
 

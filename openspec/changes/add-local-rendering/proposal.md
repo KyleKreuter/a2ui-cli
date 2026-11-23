@@ -2,7 +2,7 @@
 
 ## Why
 
-Coding agents and scripts can describe UI with A2UI, but no renderer shows A2UI surfaces inside a terminal. A local renderer is the base for every later milestone: the pane server, host adapters and the MCP server all reuse it.
+Coding agents and scripts can describe UI with A2UI, but no renderer shows A2UI surfaces inside a terminal. A local renderer is the base for every later milestone: the pane server, the widget board and the agent workflow all reuse it.
 
 ## What Changes
 
@@ -16,9 +16,9 @@ Coding agents and scripts can describe UI with A2UI, but no renderer shows A2UI 
 ## Out of scope
 
 - Socket server, sessions and the `send`/`ask`/`close` commands (milestone M2).
-- Host adapters and pane launching (M3).
-- A2UI Express input and the MCP server (M4).
-- The remaining basic catalog components (List, Tabs, Modal, Slider, ChoicePicker, Icon, media) (M5).
+- The widget board for several agents (M3, `add-widget-board`) and opening it in tmux (M4, `add-tmux-board`).
+- Shell commands for agents, such as questions on the board and the action history (M5, `add-agent-workflow`).
+- The remaining basic catalog components (List, Tabs, Modal, Slider, ChoicePicker, Icon, media) (M7, `extend-basic-catalog`).
 
 ## Capabilities
 

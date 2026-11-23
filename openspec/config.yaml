@@ -1,14 +1,16 @@
 schema: spec-driven
 
 context: |
-  a2ui-term is an open-source TypeScript CLI that renders A2UI surfaces in a terminal pane.
+  a2ui-term is an open-source TypeScript CLI that renders A2UI surfaces as widgets on one live board next to coding agents in the terminal.
+  Several agents share the board; each widget has a board-assigned id that agents use to update or remove it.
+  Agents and scripts drive the board through shell commands only; there is no MCP server.
   Write all artifacts in English.
   Runtime: Node.js >= 22, ESM only, TypeScript strict mode.
-  Use only the official A2UI packages (@a2ui/web_core, @a2ui/agent) for protocol, state and Express compilation.
-  Pin @a2ui/web_core and @a2ui/agent to exact versions; the renderer targets one A2UI protocol version at a time.
-  stdout is reserved: Ink owns it in `serve` and `demo`, the MCP transport owns it in `mcp`, and command results own it elsewhere. Logs go to a file.
+  Use only the official A2UI package @a2ui/web_core for protocol and state.
+  Pin @a2ui/web_core to an exact version; the renderer targets one A2UI protocol version at a time.
+  stdout is reserved: Ink owns it in `serve` and `demo`, and command results own it elsewhere. Logs go to a file.
   Start child processes with execFile/spawn and an argv array, never through a shell.
-  No multiplexer is an install-time dependency; host adapters call host CLIs at runtime.
+  No multiplexer is an install-time dependency; host adapters call host CLIs at runtime. tmux is the first host.
   CI runs without any terminal multiplexer installed.
 
 rules:

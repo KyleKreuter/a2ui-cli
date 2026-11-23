@@ -115,7 +115,7 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
         status = { ...status, clients };
         instance?.rerender(createElement(App, { runtime, session: status }));
       },
-      // Focusing the pane needs a host adapter (M3).
+      // Focusing the pane needs a host adapter (M3, add-tmux-panel).
       onFocus: () => {
         io.logger.write('focus requested');
       },

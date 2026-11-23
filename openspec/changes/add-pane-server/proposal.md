@@ -14,8 +14,8 @@ The `demo` command renders UI in the terminal that runs it, so the caller cannot
 
 ## Out of scope
 
-- Opening a pane automatically. In this milestone the user starts `serve` in a second terminal by hand (M3).
-- A2UI Express input (M4).
+- Opening a pane automatically. In this milestone the user starts `serve` in a second terminal by hand (M4, `add-tmux-board`).
+- A2UI Express input.
 - Windows named pipes. The socket transport targets macOS and Linux.
 
 ## Capabilities

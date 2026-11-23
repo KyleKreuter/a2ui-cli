@@ -1,13 +1,13 @@
 {
   "name": "a2ui-term",
   "version": "0.1.0",
-  "description": "Render A2UI surfaces in a terminal pane and drive them from scripts or coding agents.",
+  "description": "A live A2UI board next to your coding agents in the terminal, driven from the shell.",
   "keywords": [
     "a2ui",
     "terminal",
     "tui",
     "ink",
-    "mcp",
+    "tmux",
     "agent"
   ],
   "homepage": "https://github.com/KyleKreuter/a2ui-cli#readme",

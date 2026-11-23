@@ -40,13 +40,13 @@ Both directions use JSON Lines: one UTF-8 JSON object per line, terminated by `\
 
 ## Client messages
 
-| Message                               | Effect                                                                                 |
-| ------------------------------------- | -------------------------------------------------------------------------------------- |
-| `{"type":"a2ui","message":<message>}` | Applies one A2UI 1.0 message, for example `createSurface`.                             |
-| `{"type":"clear"}`                    | Deletes all surfaces. The renderer shows its empty state.                              |
-| `{"type":"focus"}`                    | Asks the host to focus the renderer pane. This has no effect until host adapters (M3). |
-| `{"type":"close"}`                    | Stops the renderer.                                                                    |
-| `{"type":"ping","id":"<any string>"}` | Asks for a `pong` with the same `id`.                                                  |
+| Message                               | Effect                                                     |
+| ------------------------------------- | ---------------------------------------------------------- |
+| `{"type":"a2ui","message":<message>}` | Applies one A2UI 1.0 message, for example `createSurface`. |
+| `{"type":"clear"}`                    | Deletes all surfaces. The renderer shows its empty state.  |
+| `{"type":"focus"}`                    | Reserved. The renderer accepts it and does nothing.        |
+| `{"type":"close"}`                    | Stops the renderer.                                        |
+| `{"type":"ping","id":"<any string>"}` | Asks for a `pong` with the same `id`.                      |
 
 ## Server messages
 

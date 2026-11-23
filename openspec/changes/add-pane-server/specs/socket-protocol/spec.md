@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the local message format between a2ui-term clients and the renderer, so that the CLI, the MCP server and third-party tools can drive a renderer.
+Defines the local message format between a2ui-term clients and the renderer, so that the CLI and third-party tools can drive a renderer.
 
 ## ADDED Requirements
 
