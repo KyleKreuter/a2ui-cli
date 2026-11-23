@@ -10,9 +10,9 @@
 
 ## 2. A2UI runtime
 
-- [ ] 2.1 Implement the JSONL / JSON array codec in `src/protocol/jsonl.ts` with line-numbered parse errors and verify unit tests cover blank lines, arrays and a malformed line
-- [ ] 2.2 Implement `src/a2ui/processor.ts`: wrap `MessageProcessor` from `@a2ui/web_core/v0_9` with the v0.9 basic catalog, reject other protocol versions, collect errors through `processMessagesWithErrors`, and expose surfaces and action events; verify unit tests cover each scenario of the `a2ui-runtime` spec
-- [ ] 2.3 Implement `src/log.ts` (JSON lines to a file under the `env-paths` state directory) and verify a unit test writes to a temporary directory and nothing to stdout
+- [x] 2.1 Implement the JSONL / JSON array codec in `src/protocol/jsonl.ts` with line-numbered parse errors and verify unit tests cover blank lines, arrays and a malformed line
+- [x] 2.2 Implement `src/a2ui/processor.ts`: wrap `MessageProcessor` from `@a2ui/web_core/v0_9` with the v0.9 basic catalog, reject other protocol versions, collect errors through `processMessagesWithErrors`, and expose surfaces and action events; verify unit tests cover each scenario of the `a2ui-runtime` spec
+- [x] 2.3 Implement `src/log.ts` (JSON lines to a file under the `env-paths` state directory) and verify a unit test writes to a temporary directory and nothing to stdout
 
 ## 3. Terminal renderer
 
