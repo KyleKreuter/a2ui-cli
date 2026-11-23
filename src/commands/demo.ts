@@ -63,6 +63,9 @@ export async function runDemo(
   const board = new WidgetBoard(runtime);
   const instance = render(createElement(App, { board }), {
     stdin: keyboard,
+    // Ink renders no frames when it detects CI, for example CI=true, even on
+    // a terminal. Decide by the terminal alone.
+    interactive: process.stdout.isTTY === true,
     exitOnCtrlC: false,
     alternateScreen: true,
   });

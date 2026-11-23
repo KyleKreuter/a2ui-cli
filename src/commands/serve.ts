@@ -163,6 +163,9 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
     instance = render(createElement(App, { board, session: status }), {
       stdin: io.stdin,
       stdout: io.stdout,
+      // Ink renders no frames when it detects CI, for example CI=true, even on
+      // a terminal. The board always runs on a terminal, so render live.
+      interactive: io.stdout.isTTY === true,
       exitOnCtrlC: false,
       patchConsole: false,
     });
