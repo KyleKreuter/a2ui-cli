@@ -22,4 +22,4 @@
 ## 5. Integration
 
 - [x] 5.1 Add an optional CI job that installs tmux, runs `a2ui-term add examples/progress.jsonl` in a detached tmux session, and verifies with `tmux capture-pane` that the board shows the widget
-- [ ] 5.2 Run the manual checklist in tmux with two Claude Code sessions in different windows: the first `add` opens the board without taking focus, the second agent's widgets appear on the same board with its label, and closing one agent's pane marks its widgets as ended. Record the results in the pull request
+- [x] 5.2 Run the manual checklist in tmux with two Claude Code sessions in different windows: the first `add` opens the board without taking focus, the second agent's widgets appear on the same board with its label, and closing one agent's pane marks its widgets as ended. Record the results in the pull request

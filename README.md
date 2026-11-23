@@ -313,7 +313,7 @@ Each milestone is one OpenSpec change with a proposal, specs, a design and tasks
 | M1        | [`add-local-rendering`](openspec/changes/archive/2026-11-23-add-local-rendering/) | Project setup, runtime, Ink renderer for 8 components, `demo`                              |
 | M2        | [`add-pane-server`](openspec/changes/archive/2026-11-23-add-pane-server/)         | Sessions, socket protocol, `serve`, `send`, `ask`, `close`                                 |
 | M3        | [`add-widget-board`](openspec/changes/archive/2026-11-23-add-widget-board/)       | Shared board with a 12-column grid and scrolling, `add`, `update`, `set`, `remove`, `list` |
-| M4        | [`add-tmux-board`](openspec/changes/add-tmux-board/)                              | Board pane in tmux, `open`, automatic launch, ended widgets                                |
+| M4        | [`add-tmux-board`](openspec/changes/archive/2026-11-23-add-tmux-board/)           | Board pane in tmux, `open`, automatic launch, ended widgets                                |
 | M5        | [`add-terminal-hosts`](openspec/changes/add-terminal-hosts/)                      | Board pane in Zellij, WezTerm and kitty                                                    |
 | M6        | [`add-agent-workflow`](openspec/changes/add-agent-workflow/)                      | `ask` on widgets, action history with `events`, `guide`, Agent Skill, `doctor`             |
 | M7        | [`add-mouse-arrangement`](openspec/changes/add-mouse-arrangement/)                | Mouse wheel, clicks, drag to arrange, close mark, keyboard move mode                       |
