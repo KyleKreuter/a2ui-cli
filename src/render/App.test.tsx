@@ -105,6 +105,22 @@ describe('App', () => {
       await press(stdin, keys.tab, keys.enter);
       expect(plain(lastFrame())).toContain('last action: submit');
     });
+
+    it('shows session, host and client count while serving', async () => {
+      const runtime = new A2uiRuntime();
+      const session = { sessionId: 't', host: 'tmux', clients: 0 };
+      const { lastFrame, rerender } = renderTty(<App runtime={runtime} session={session} />);
+      expect(plain(lastFrame())).toContain('session t · tmux · 0 clients');
+      rerender(<App runtime={runtime} session={{ ...session, clients: 1 }} />);
+      await settle();
+      expect(plain(lastFrame())).toContain('session t · tmux · 1 client');
+      expect(plain(lastFrame())).toContain('q quit');
+    });
+
+    it('shows no session outside serve', () => {
+      const { lastFrame } = renderApp();
+      expect(plain(lastFrame())).not.toContain('session');
+    });
   });
 
   describe('global keys', () => {

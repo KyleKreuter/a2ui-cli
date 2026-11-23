@@ -36,7 +36,7 @@ The server SHALL send `{"type":"ready","version":<tool version>,"a2uiSpec":"1.0"
 - **THEN** its first received line is a `ready` message with the tool version and `a2uiSpec` `1.0`
 
 ### Requirement: Action broadcast
-The server SHALL send every user action as `{"type":"action","surfaceId","name","sourceComponentId","context","dataModel"?}` to all connected clients. `dataModel` SHALL be present only when the surface requests it.
+The server SHALL send every user action as `{"type":"action","surfaceId","name","sourceComponentId","timestamp","context","userMessage"?,"dataModel"?}` to all connected clients. `userMessage` SHALL be present only when the action defines one, and `dataModel` only when the surface requests it.
 
 #### Scenario: Two clients connected
 - **WHEN** two clients are connected and the user presses a Button

@@ -10,12 +10,20 @@ export const EMPTY_STATE = 'Waiting for UI…';
 const KEY_HELP = 'Tab next · Shift+Tab back · Enter press · q quit';
 const SURFACE_KEY_HELP = 'Ctrl+←/→ surface';
 
+/** Session details for the status line, shown while `serve` runs. */
+export interface SessionStatus {
+  readonly sessionId: string;
+  readonly host: string;
+  readonly clients: number;
+}
+
 export interface AppProps {
   readonly runtime: A2uiRuntime;
+  readonly session?: SessionStatus;
 }
 
 /** The terminal frame: surface tabs, the shown surface, and a status line. */
-export function App({ runtime }: AppProps) {
+export function App({ runtime, session }: AppProps) {
   const { exit } = useApp();
   const textInputFocus = useMemo(() => createTextInputFocus(), []);
   const surfaceIds = useSurfaceIds(runtime);
@@ -63,7 +71,11 @@ export function App({ runtime }: AppProps) {
             <Text dimColor>{EMPTY_STATE}</Text>
           )}
         </Box>
-        <StatusLine lastAction={lastAction} multipleSurfaces={surfaceIds.length > 1} />
+        <StatusLine
+          lastAction={lastAction}
+          multipleSurfaces={surfaceIds.length > 1}
+          session={session}
+        />
       </Box>
     </TextInputFocusContext>
   );
@@ -84,13 +96,23 @@ function SurfaceTabs({ ids, shown }: { readonly ids: string[]; readonly shown?: 
 function StatusLine({
   lastAction,
   multipleSurfaces,
+  session,
 }: {
   readonly lastAction?: ActionEvent;
   readonly multipleSurfaces: boolean;
+  readonly session?: SessionStatus;
 }) {
   const help = multipleSurfaces ? `${KEY_HELP} · ${SURFACE_KEY_HELP}` : KEY_HELP;
   return (
-    <Box marginTop={1} columnGap={2}>
+    <Box marginTop={1} columnGap={2} flexWrap="wrap">
+      {session && (
+        <Text>
+          <Text dimColor>session</Text> <Text bold>{session.sessionId}</Text>
+          <Text dimColor>
+            {` · ${session.host} · ${session.clients} ${session.clients === 1 ? 'client' : 'clients'}`}
+          </Text>
+        </Text>
+      )}
       <Text dimColor>{help}</Text>
       {lastAction && (
         <Text>

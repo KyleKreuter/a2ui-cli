@@ -145,6 +145,15 @@ describe('A2uiRuntime', () => {
     });
   });
 
+  describe('clear', () => {
+    it('deletes every surface', () => {
+      const { runtime } = setup();
+      runtime.apply([createSurface('a'), createSurface('b')]);
+      expect(runtime.clear()).toEqual([]);
+      expect(runtime.surfaces().size).toBe(0);
+    });
+  });
+
   describe('data model updates', () => {
     it('updates a bound Text in place', () => {
       const { runtime } = setup();

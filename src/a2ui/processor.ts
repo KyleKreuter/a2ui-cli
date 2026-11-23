@@ -109,6 +109,16 @@ export class A2uiRuntime {
     return messages.flatMap((message) => this.applyOne(message));
   }
 
+  /** Deletes every surface. */
+  clear(): RuntimeError[] {
+    return this.apply(
+      [...this.surfaces().keys()].map((surfaceId) => ({
+        version: PROTOCOL_VERSION,
+        deleteSurface: { surfaceId },
+      })),
+    );
+  }
+
   surfaces(): ReadonlyMap<string, SurfaceModel> {
     return this.processor.getSurfaces();
   }

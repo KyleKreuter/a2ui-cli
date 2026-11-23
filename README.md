@@ -2,7 +2,7 @@
 
 Render [A2UI](https://a2ui.org) surfaces in a terminal pane, and drive them from scripts, the shell, or coding agents over MCP.
 
-> **Status:** early development. Milestone M1 (local rendering with `a2ui-term demo`) is implemented. The package is not on npm yet. The design lives in [`openspec/changes/`](openspec/changes/).
+> **Status:** early development. Milestones M1 (local rendering with `a2ui-term demo`) and M2 (`serve`, `send`, `ask`, `close`) are implemented. The package is not on npm yet. The design lives in [`openspec/changes/`](openspec/changes/).
 
 ## What it does
 
@@ -11,11 +11,11 @@ Available now:
 - Renders A2UI 1.0 surfaces in the terminal with [Ink](https://github.com/vadimdemedes/ink): Text, Row, Column, Card, Divider, Button, TextField and CheckBox. Other components show as `[unsupported: <type>]`.
 - Renders a Markdown subset in Text: headings, list items, bold, italic and inline code.
 - `a2ui-term demo` renders A2UI messages from a file or stdin in the current terminal.
+- `a2ui-term serve` runs a renderer in its own terminal. Scripts send it UI with `a2ui-term send` and wait for the user's answer with `a2ui-term ask`, which prints the action as JSON.
 
 Planned (see [Roadmap](#roadmap)):
 
 - Opens the renderer in a new pane next to you: tmux first, then Zellij, WezTerm and kitty. Other hosts plug in as TOML files or external programs.
-- Lets scripts show UI and wait for the user's answer: `a2ui-term ask form.jsonl` prints the user's action as JSON.
 - Runs as an MCP server (`a2ui-term mcp`) so that agents such as Claude Code, GitHub Copilot CLI and Codex can ask the user through terminal UI.
 - Accepts A2UI Express, a compact UI notation that costs agents fewer tokens than A2UI JSON.
 
@@ -98,6 +98,70 @@ Save this message as `hi.jsonl` and run `a2ui-term demo hi.jsonl`:
 ```json
 {"version":"1.0","createSurface":{"surfaceId":"hi","catalogId":"https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json","components":[{"id":"root","component":"Text","text":"## Hello, **terminal**"}]}}
 ```
+
+## Ask the user from a script: `serve`, `send`, `ask`, `close`
+
+`serve` runs a renderer for a session in its own terminal. Other processes send it A2UI messages over a Unix domain socket and receive the user's actions. This works on macOS and Linux.
+
+1. In a second terminal, start the renderer:
+
+   ```bash
+   a2ui-term serve --session demo
+   ```
+
+2. In your first terminal, show a form and wait for the answer:
+
+   ```bash
+   a2ui-term ask --session demo examples/form.jsonl
+   ```
+
+3. In the renderer, fill in the form and press **Submit**. `ask` prints the action as one JSON line and exits with code 0:
+
+   <!-- prettier-ignore -->
+   ```json
+   {"surfaceId":"signup","name":"submit","sourceComponentId":"submit","timestamp":"2026-11-23T10:00:05.000Z","context":{"name":"Ada","email":"ada@example.org","newsletter":true}}
+   ```
+
+4. Stop the renderer:
+
+   ```bash
+   a2ui-term close --session demo
+   ```
+
+| Command                      | Does                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `serve`                      | Renders the session's surfaces in this terminal until you press `q`, a client sends `close`, or it gets a signal. |
+| `send [file]`                | Sends A2UI messages and exits when the renderer has accepted all of them.                                         |
+| `ask [file] [--timeout <s>]` | Like `send`, then waits for the next user action and prints it as JSON.                                           |
+| `close`                      | Stops the renderer. Succeeds also when no renderer runs.                                                          |
+
+`send` and `ask` read JSON Lines or a JSON array, from a file or from stdin (`-` or no file). They parse the whole input first and send nothing if a line is invalid. `ask` ignores actions that happened before it sent its messages.
+
+A surface id can exist only once per renderer, so a second `ask` with the same file fails with `Surface confirm already exists`. To show the same file again, send a `deleteSurface` message for the surface first, or restart `serve`.
+
+Without `--session`, the commands use `$A2UI_TERM_SESSION`, then an id derived from the current tmux, Zellij, WezTerm or kitty pane, then `default`. The renderer status line shows the session, the host and the number of connected clients.
+
+### Exit codes
+
+| Code | Meaning                                                                              |
+| ---- | ------------------------------------------------------------------------------------ |
+| `0`  | Success.                                                                             |
+| `1`  | Error, for example no renderer runs for the session, or an invalid flag.             |
+| `2`  | `ask` got no action before `--timeout`.                                              |
+| `3`  | The user closed the renderer while `ask` waited.                                     |
+| `4`  | The input is not valid JSON Lines or JSON, or the renderer rejected an A2UI message. |
+
+For example, a shell script can branch on the answer:
+
+```bash
+if answer=$(a2ui-term ask --timeout 60 examples/confirm.jsonl); then
+  echo "User chose: $answer"
+else
+  echo "No answer (exit code $?)"
+fi
+```
+
+To write your own client in another language, see [`docs/protocol.md`](docs/protocol.md).
 
 ## Roadmap
 

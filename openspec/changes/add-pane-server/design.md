@@ -22,10 +22,10 @@ M1 (`add-local-rendering`) provides the runtime wrapper and the Ink renderer. Th
 ### Module layout
 
 - `src/protocol/messages.ts`: zod schemas and types for all client and server messages. The `a2ui` payload stays `unknown` at this layer; the runtime validates it.
-- `src/protocol/lines.ts`: a line splitter for `net.Socket` streams with the 4 MiB limit. M1's JSONL codec handles file input; both share the JSON parse helper.
+- `src/protocol/lines.ts`: a line splitter for `net.Socket` streams with the 4 MiB limit. M1's JSONL codec handles file and stdin input.
 - `src/session/`: id resolution, paths, directory checks, state file, stale socket detection.
 - `src/server/`: `net.Server`, client set, broadcast, dispatch of client messages to the runtime.
-- `src/client/`: a small promise-based client (`connect`, `send`, `waitFor`), reused by `send`, `ask`, `close`, and by the MCP server in M4.
+- `src/client/`: a small promise-based client (`connect`, `send`, `confirm`, `waitForAction`), reused by `send`, `ask`, `close`, and by the MCP server in M4.
 
 ### Acknowledgement through ping ordering
 
