@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Turns A2UI Express text into A2UI v0.9 messages for the supported component set, and reports Express errors so that a person or a model can fix them.
+Turns A2UI Express text into A2UI 1.0 messages for the supported component set, and reports Express errors so that a person or a model can fix them.
 
 ## ADDED Requirements
 
 ### Requirement: Compile command
-`a2ui-term compile [file|-]` SHALL compile Express text from the file or stdin to A2UI v0.9 messages and print them as JSON Lines on stdout, without connecting to a renderer.
+`a2ui-term compile [file|-]` SHALL compile Express text from the file or stdin to A2UI 1.0 messages and print them as JSON Lines on stdout, without connecting to a renderer.
 
 #### Scenario: Compile an example
 - **WHEN** the user runs `a2ui-term compile examples/form.a2ui`

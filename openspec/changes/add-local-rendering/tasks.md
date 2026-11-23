@@ -11,14 +11,14 @@
 ## 2. A2UI runtime
 
 - [x] 2.1 Implement the JSONL / JSON array codec in `src/protocol/jsonl.ts` with line-numbered parse errors and verify unit tests cover blank lines, arrays and a malformed line
-- [x] 2.2 Implement `src/a2ui/processor.ts`: wrap `MessageProcessor` from `@a2ui/web_core/v0_9` with the v0.9 basic catalog, reject other protocol versions, collect errors through `processMessagesWithErrors`, and expose surfaces and action events; verify unit tests cover each scenario of the `a2ui-runtime` spec
+- [x] 2.2 Implement `src/a2ui/processor.ts`: wrap `MessageProcessor` from `@a2ui/web_core/v1_0` with the 1.0 basic catalog, reject other protocol versions, collect errors through `processMessagesWithErrors`, and expose surfaces and action events; verify unit tests cover each scenario of the `a2ui-runtime` spec
 - [x] 2.3 Implement `src/log.ts` (JSON lines to a file under the `env-paths` state directory) and verify a unit test writes to a temporary directory and nothing to stdout
 
 ## 3. Terminal renderer
 
 - [x] 3.1 Implement `src/render/useSignal.ts` and verify a test updates a signal and observes one re-render
 - [x] 3.2 Implement `src/render/catalog/registry.ts`, the placeholder component and `Surface.tsx` (one `NodeResolver` per surface) and verify a snapshot test renders `[unsupported: Chart]` next to a supported sibling
-- [x] 3.3 Implement Text, Row, Column, Card and Divider and verify snapshot tests with `ink-testing-library` for each, including heading and caption variants and the Divider width
+- [x] 3.3 Implement Text, Row, Column, Card and Divider and verify snapshot tests with `ink-testing-library` for each, including the caption variant and the Divider width
 - [x] 3.4 Implement Button, TextField (including `obscured`) and CheckBox with focus marking and verify input tests: `Tab`/`Shift+Tab` order, `Enter`/`Space` on Button, typing into TextField, `Space` on CheckBox, and the resulting data model values and action events
 - [x] 3.5 Implement `App.tsx`: empty state, surface tabs with `Ctrl+Left`/`Ctrl+Right`, status line with the last action, and global keys that skip `q`/`Esc` while a TextField has focus; verify tests for each `terminal-renderer` and `local-preview` key scenario
 
@@ -28,6 +28,13 @@
 - [x] 4.2 Add `examples/hello.jsonl`, `form.jsonl`, `confirm.jsonl` and `progress.jsonl` (progress sends several `updateDataModel` messages) and verify a test applies each example without errors
 - [x] 4.3 Document installation, `demo` usage and the example files in `README.md` and verify each documented command runs as written
 
-## 5. Acceptance
+## 5. Protocol 1.0
 
-- [x] 5.1 Run `cat examples/form.jsonl | a2ui-term demo` from the built package, move focus with `Tab`, press the submit Button, and verify the log file contains the `submit` action with the typed values
+- [x] 5.1 Switch `src/a2ui/webcore.ts` and `processor.ts` to `@a2ui/web_core/v1_0` and version `1.0`, add `userMessage` to action events and `onOutbound()` for outbound messages, and verify unit tests for the `a2ui-runtime` scenarios on versions, user messages and renderer function calls
+- [x] 5.2 Implement the Markdown subset in `src/render/markdown.ts` and Text, and verify unit tests for headings, list items, bold, italic, code, escaped marks and `file_name_here`, and snapshot tests for Text
+- [x] 5.3 Map `placeholder` in TextField and verify a test for the focused and the unfocused empty field
+- [x] 5.4 Log outbound messages in `demo`, convert the examples to 1.0 with `@path` bindings and Markdown headings, and verify the example test and the README commands
+
+## 6. Acceptance
+
+- [x] 6.1 Run `cat examples/form.jsonl | a2ui-term demo` from the built package, move focus with `Tab`, press the submit Button, and verify the log file contains the `submit` action with the typed values

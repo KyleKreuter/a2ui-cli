@@ -29,11 +29,11 @@ The server SHALL accept these client messages: `{"type":"a2ui","message":<A2UI m
 - **THEN** the renderer shows the empty state
 
 ### Requirement: Ready message
-The server SHALL send `{"type":"ready","version":<tool version>,"a2uiSpec":"v0.9"}` to each client as the first message after the connection opens.
+The server SHALL send `{"type":"ready","version":<tool version>,"a2uiSpec":"1.0"}` to each client as the first message after the connection opens.
 
 #### Scenario: New connection
 - **WHEN** a client connects
-- **THEN** its first received line is a `ready` message with the tool version and `a2uiSpec` `v0.9`
+- **THEN** its first received line is a `ready` message with the tool version and `a2uiSpec` `1.0`
 
 ### Requirement: Action broadcast
 The server SHALL send every user action as `{"type":"action","surfaceId","name","sourceComponentId","context","dataModel"?}` to all connected clients. `dataModel` SHALL be present only when the surface requests it.

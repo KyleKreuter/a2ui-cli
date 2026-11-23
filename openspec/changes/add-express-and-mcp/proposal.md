@@ -25,7 +25,7 @@ Coding agents pay for every token they write. A2UI JSON is verbose, while A2UI E
 
 ### New Capabilities
 
-- `express-compilation`: compiling Express to A2UI v0.9 messages, error reporting, the supported component set, and Express input for the CLI.
+- `express-compilation`: compiling Express to A2UI 1.0 messages, error reporting, the supported component set, and Express input for the CLI.
 - `mcp-server`: the MCP server, its tools, parameters, results and guide.
 - `diagnostics`: the `doctor` command.
 

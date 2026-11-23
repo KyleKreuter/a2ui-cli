@@ -5,7 +5,13 @@
 The repository is empty. See `proposal.md` for motivation. The following facts were verified against the published packages on 2026-11-23 with a Node.js 26 prototype:
 
 - `@a2ui/web_core@0.15.0` imports and runs in Node.js without a DOM. It exports one entry per protocol version (`/v0_8`, `/v0_9`, `/v1_0`).
-- `@a2ui/agent@0.1.0` supports protocol v0.9 and v1.0 and depends on `@a2ui/web_core@^0.15.0`.
+- The 1.0 basic catalog (`https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json`) has the same 18 components as the v0.9 catalog. Messages carry `"version": "1.0"`, and `createSurface` can carry `components` and `dataModel`.
+- In 1.0, a data binding is `{"@path": "/x"}` and a function call is `{"@call": "name", "args": {}}`. The processor accepts the v0.9 forms `{"path"}` and `{"call"}` without an error and keeps them as literal object values.
+- In 1.0, component ids must be Unicode identifiers (UAX #31): `submitLabel` is valid, `submit-label` fails validation.
+- The 1.0 Text component has only the variants `caption` and `body`. Its `text` supports simple Markdown without HTML, images and links. The 1.0 TextField has a `placeholder` property.
+- A 1.0 action payload can carry a resolved `userMessage`.
+- The processor answers a `callRendererFunction` message with a `rendererFunctionResponse` message, which it passes to the `outboundListener` option. All functions of the basic catalog are renderer-only, so an agent call to one of them gets an `INVALID_FUNCTION_CALL` response.
+- `@a2ui/agent@0.1.0` supports protocol v0.9 and 1.0 and depends on `@a2ui/web_core@^0.15.0`. Against the 1.0 basic catalog, it compiles Express to 1.0 messages.
 - `MessageProcessor(catalogs, actionHandler)` applies messages. `processMessagesWithErrors()` returns errors instead of throwing.
 - `NodeResolver(surface)` exposes `rootNode`, a signal of a resolved `ComponentNode` tree. Each node has `type`, `state` (`resolved`, `pending`, `unknown-type`, `cyclic`) and `props`, a signal.
 - In resolved props, child references are `ComponentNode` values, dynamic values are `ResolvedBinding` objects (`{ value }`), bound input values are `WritableBinding` objects (`{ value, set, path }`), and actions are functions. Calling an action function invokes the action handler with `{ name, surfaceId, sourceComponentId, timestamp, context }`, where `context` holds resolved values.
@@ -23,33 +29,35 @@ The repository is empty. See `proposal.md` for motivation. The following facts w
 
 - Theme support beyond a fixed color for focus.
 - Mouse input.
-- Markdown in Text components. Text renders its string as plain text.
+- Full Markdown in Text components. Text renders the subset described below.
 
 ## Decisions
 
-### Protocol version v0.9
+### Protocol version 1.0
 
-Use A2UI v0.9 with the v0.9 basic catalog (`https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json`).
+Use A2UI 1.0 with the 1.0 basic catalog (`https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json`). The runtime rejects messages with any other `version`, and messages without one.
 
-- v0.9 is the production version. v1.0 is a release candidate.
-- The v0.9 Text component has the heading variants `h1` to `h5`. The v1.0 Text component has only `caption` and `body`, so terminal headings would need a workaround.
-- Both official packages support v0.9 and expose the same component set (18 components) for it.
+- a2ui-term has no release yet. Starting on 1.0 means its first users never see a protocol change.
+- Both official packages support 1.0 and expose the same 18 components for it.
+- 1.0 adds renderer function calls (`callRendererFunction`), which v0.9 does not have.
 
-Alternative: v1.0. Rejected for this milestone. Switching later affects the `a2ui/` wrapper and the catalog registry only.
+Alternative: v0.9, the version this milestone first targeted. Rejected: a later switch to 1.0 breaks every agent and script written against a2ui-term, because binding syntax and Text variants differ.
+
+`src/a2ui/webcore.ts` is the only module that imports `@a2ui/web_core`, and it imports from `/v1_0`.
 
 Pin `@a2ui/web_core` to `0.15.0` exactly (and `@a2ui/agent` to `0.1.0` in M4). Both packages move fast (seven minor releases between August and November 2026), and the renderer relies on the node layer API.
 
 ### Render from the node layer, not from raw component models
 
-Use `NodeResolver` from `@a2ui/web_core/v0_9` for each surface. It resolves bindings, templates, child references and action closures. The renderer only maps resolved nodes to Ink elements. This keeps binding and expression logic in the official package.
+Use `NodeResolver` from `@a2ui/web_core/v1_0` for each surface. It resolves bindings, templates, child references and action closures. The renderer only maps resolved nodes to Ink elements. This keeps binding and expression logic in the official package.
 
 Alternative: read `SurfaceModel.componentsModel` and resolve bindings in the renderer. Rejected: duplicates `web_core` logic.
 
 ### Signal bridge
 
-`useSignal(signal)` subscribes with `effect()` from `@a2ui/web_core/v0_9` and stores the value in React state through `useSyncExternalStore`. Each Ink component subscribes to its own node's `props`, so a data model change re-renders only the affected component.
+`useSignal(signal)` subscribes with `effect()` from `@a2ui/web_core/v1_0` and stores the value in React state through `useSyncExternalStore`. Each Ink component subscribes to its own node's `props`, so a data model change re-renders only the affected component.
 
-Use the signal functions re-exported by `@a2ui/web_core/v0_9`. Do not add `@preact/signals-core` as a direct dependency: two copies of the signal library do not share a dependency graph.
+Use the signal functions re-exported by `@a2ui/web_core/v1_0`. Do not add `@preact/signals-core` as a direct dependency: two copies of the signal library do not share a dependency graph.
 
 ### Catalog registry
 
@@ -59,9 +67,28 @@ Use the signal functions re-exported by `@a2ui/web_core/v0_9`. Do not add `@prea
 
 Use Ink's `useFocus` and `useFocusManager`. Ink focuses components in mount order, which matches tree order for a static tree. The frame component handles global keys (`q`, `Esc`, `Ctrl+C`, `Ctrl+Left`, `Ctrl+Right`) and skips `q` and `Esc` while a TextField has focus. The TextField reports its focus to the frame through React context.
 
+### Text and Markdown
+
+1.0 has no heading variants, so headings come from Markdown in `text`. `src/render/markdown.ts` parses this subset into styled spans:
+
+- A line that starts with one to six `#` and a space is a heading. It renders bold, without the `#` marks.
+- A line that starts with `- ` or `* ` is a list item. It renders with `•` in place of the marker.
+- `**text**` renders bold, `*text*` renders italic, and `` `text` `` renders in the code color, all without their marks. A backslash before a mark keeps the mark as text.
+- All other text, including links, images and HTML, renders as written.
+
+`_` and `__` are no emphasis marks. Agents write identifiers such as `file_name` in plain text, and treating `_` as a mark would italicize parts of them.
+
+The `caption` variant dims the whole text. Styles from the parent, such as a focused Button's color, apply to every span. Each span carries its full style instead of nesting Ink texts, and a Markdown-bold span in dimmed text is not dimmed: bold and dim both end with SGR 22, and Ink's output stage (`@alcalzone/ansi-tokenize@0.3.1`) does not re-open dim after a span that is both bold and dim.
+
+Alternative: `marked` with `marked-terminal`. Rejected: it renders full Markdown, including links and tables, which the 1.0 catalog excludes, and adds two dependencies for a small subset.
+
 ### TextField
 
-Use `ink-text-input` and pass the bound value and `WritableBinding.set`. The `obscured` variant maps to its `mask` prop.
+Use `ink-text-input` and pass the bound value and `WritableBinding.set`. The `obscured` variant maps to its `mask` prop. `placeholder` maps to its `placeholder` prop. An empty field without focus shows the placeholder dimmed, or `…` without a placeholder.
+
+### Outbound renderer messages
+
+The runtime passes an `outboundListener` to `MessageProcessor` and forwards each outbound message (`rendererFunctionResponse`, `callAgentFunction`) to handlers registered with `onOutbound()`. `demo` has no agent, so it writes these messages to the log. M2 sends them to the client that sent the call.
 
 ### Input when stdin is a pipe
 
@@ -78,6 +105,8 @@ Use `ink-text-input` and pass the bound value and `WritableBinding.set`. The `ob
 Use TypeScript 6.0. `typescript-eslint@8` declares `typescript <6.1.0` as peer, so TypeScript 7 waits for a `typescript-eslint` release that supports it.
 
 ## Risks / Trade-offs
+
+- [Agents trained on v0.9 write `{"path": ...}`, which 1.0 accepts as a literal value, so the binding silently does not work] → Examples, the README and the M4 MCP guide use `@path` and `@call` only. The `version` check rejects v0.9 messages before they reach the processor.
 
 - [`web_core` changes its node layer API in a minor release] → Exact version pins; the `a2ui/` wrapper is the only module that imports `web_core` state types; renderer tests cover each component.
 - [`web_core` pulls in `lit` and `zod@3` as transitive dependencies, which the terminal renderer does not use] → Accept. `zod@3` is nested and does not conflict with the project's own `zod`.

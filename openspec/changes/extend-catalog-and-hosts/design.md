@@ -2,7 +2,7 @@
 
 ## Context
 
-M1 renders 8 components; the v0.9 basic catalog holds 18: Text, Image, Icon, Video, AudioPlayer, Row, Column, List, Card, Tabs, Modal, Divider, Button, TextField, CheckBox, ChoicePicker, Slider, DateTimeInput. M3 ships tmux as the only declarative adapter. See `proposal.md` for motivation.
+M1 renders 8 components; the 1.0 basic catalog holds 18: Text, Image, Icon, Video, AudioPlayer, Row, Column, List, Card, Tabs, Modal, Divider, Button, TextField, CheckBox, ChoicePicker, Slider, DateTimeInput. M3 ships tmux as the only declarative adapter. See `proposal.md` for motivation.
 
 ## Goals / Non-Goals
 

@@ -7,7 +7,7 @@ Coding agents and scripts can describe UI with A2UI, but no renderer shows A2UI 
 ## What Changes
 
 - Set up the `a2ui-term` package: TypeScript, ESM, one bundled `bin`, test runner, lint and format configuration.
-- Add an A2UI runtime layer on top of `@a2ui/web_core` that accepts A2UI protocol v0.9 messages as JSON Lines or as a JSON array, applies them to surface state and reports actions.
+- Add an A2UI runtime layer on top of `@a2ui/web_core` that accepts A2UI protocol 1.0 messages as JSON Lines or as a JSON array, applies them to surface state and reports actions.
 - Add a terminal renderer built with Ink that maps the first set of basic catalog components to terminal output: Text, Row, Column, Card, Divider, Button, TextField and CheckBox.
 - Add keyboard focus navigation and action dispatch for interactive components.
 - Add the `demo` subcommand, which renders A2UI messages from a file or stdin in the current terminal without a socket.

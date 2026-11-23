@@ -14,7 +14,7 @@ Lets MCP-capable coding agents show terminal UI and collect user answers through
 - **THEN** it receives `show_ui`, `ask_user`, `update_data` and `close_ui`
 
 ### Requirement: UI input is Express or messages
-`show_ui` and `ask_user` SHALL take exactly one of `express` (string) or `messages` (array of A2UI v0.9 messages), and an optional `session`. A call with both or neither SHALL fail with a tool error that explains the rule.
+`show_ui` and `ask_user` SHALL take exactly one of `express` (string) or `messages` (array of A2UI 1.0 messages), and an optional `session`. A call with both or neither SHALL fail with a tool error that explains the rule.
 
 #### Scenario: Both inputs given
 - **WHEN** an agent calls `show_ui` with `express` and `messages`

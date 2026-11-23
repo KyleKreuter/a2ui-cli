@@ -7,16 +7,20 @@ Accepts A2UI messages for one pinned protocol version, applies them to surface s
 ## ADDED Requirements
 
 ### Requirement: Pinned protocol version
-The runtime SHALL support exactly one A2UI protocol version, v0.9, together with the v0.9 basic catalog. The supported version SHALL be reported wherever the tool reports its own version.
+The runtime SHALL support exactly one A2UI protocol version, 1.0, together with the 1.0 basic catalog. The supported version SHALL be reported wherever the tool reports its own version.
 
 #### Scenario: Message for the supported version
-- **WHEN** the runtime receives a `createSurface` message with `"version": "v0.9"`
+- **WHEN** the runtime receives a `createSurface` message with `"version": "1.0"`
 - **THEN** it creates the surface
 
 #### Scenario: Message for another version
-- **WHEN** the runtime receives a message with `"version": "1.0"`
+- **WHEN** the runtime receives a message with `"version": "v0.9"`
 - **THEN** it rejects the message with an error that names the supported version
 - **AND** it leaves existing surfaces unchanged
+
+#### Scenario: Message without a version
+- **WHEN** the runtime receives a `deleteSurface` message without a `version` field
+- **THEN** it rejects the message with an error that names the supported version
 
 ### Requirement: Message input formats
 The runtime SHALL accept A2UI messages as JSON Lines (one message per line) and as a single JSON array of messages. Blank lines in JSON Lines input SHALL be ignored.
@@ -60,10 +64,22 @@ Input components bound to a data model path SHALL write user input back to that 
 When the user triggers an action, the runtime SHALL emit an action event with the surface id, the action name, the source component id, and the action context with all data bindings resolved to their current values.
 
 #### Scenario: Submit a form
-- **WHEN** a Button has the action `submit` with context `{name: /form/name}` and `/form/name` is `Ada`
+- **WHEN** a Button has the action `submit` with context `{"name": {"@path": "/form/name"}}` and `/form/name` is `Ada`
 - **AND** the user presses the Button
 - **THEN** the runtime emits an action event with name `submit`, the surface id, the Button's component id, and context `{"name": "Ada"}`
+
+#### Scenario: User message
+- **WHEN** a Button's action has the `userMessage` `Submitted`
+- **AND** the user presses the Button
+- **THEN** the action event contains the user message `Submitted`
 
 #### Scenario: Data model snapshot on request
 - **WHEN** the surface was created with `sendDataModel: true` and the user triggers an action
 - **THEN** the action event also contains a snapshot of that surface's data model
+
+### Requirement: Renderer function calls
+The runtime SHALL answer each `callRendererFunction` message as `web_core` defines it, and SHALL report every outbound message for the agent (`rendererFunctionResponse`, `callAgentFunction`) to its outbound handlers.
+
+#### Scenario: Agent calls a renderer-only function
+- **WHEN** the runtime receives a `callRendererFunction` message with the function call id `c1` for the basic catalog function `required`
+- **THEN** its outbound handlers receive a `rendererFunctionResponse` message for `c1` with the error code `INVALID_FUNCTION_CALL`

@@ -7,11 +7,19 @@ Defines how A2UI surfaces and basic catalog components appear in a terminal and 
 ## ADDED Requirements
 
 ### Requirement: Text rendering
-The renderer SHALL render a Text component as terminal text. Heading variants `h1` to `h5` SHALL render bold, and the `caption` variant SHALL render dimmed.
+The renderer SHALL render a Text component as terminal text, and the `caption` variant SHALL render dimmed. The renderer SHALL render this Markdown subset in `text`: headings (one to six `#` and a space at the start of a line) bold, list items (`- ` or `* ` at the start of a line) with a `•` marker, `**bold**`, `*italic*` and `` `code` ``. It SHALL remove the Markdown marks it renders and SHALL show all other text as written.
 
 #### Scenario: Heading text
-- **WHEN** a Text component has the variant `h2` and the text `Sign up`
-- **THEN** the terminal shows `Sign up` in bold
+- **WHEN** a Text component has the text `## Sign up`
+- **THEN** the terminal shows `Sign up` in bold, without `##`
+
+#### Scenario: Inline emphasis
+- **WHEN** a Text component has the text `Press **Enter** to send`
+- **THEN** the terminal shows `Press Enter to send` with `Enter` in bold
+
+#### Scenario: Underscores in identifiers
+- **WHEN** a Text component has the text `Open file_name_here`
+- **THEN** the terminal shows `Open file_name_here` without italic text
 
 #### Scenario: Caption text
 - **WHEN** a Text component has the variant `caption`
@@ -59,11 +67,15 @@ A focused Button SHALL trigger its action when the user presses `Enter` or `Spac
 - **THEN** the runtime emits an action event with name `confirm`
 
 ### Requirement: Text input
-A focused TextField SHALL accept typed characters, `Backspace`, and cursor movement, and SHALL show its label. The `obscured` variant SHALL mask the typed characters. The v0.9 TextField has no placeholder property, so the renderer shows none.
+A focused TextField SHALL accept typed characters, `Backspace`, and cursor movement, and SHALL show its label. The `obscured` variant SHALL mask the typed characters. An empty TextField SHALL show its `placeholder` dimmed.
 
 #### Scenario: Type into a field
 - **WHEN** an empty TextField has focus and the user types `abc`
 - **THEN** the field shows `abc`
+
+#### Scenario: Placeholder
+- **WHEN** an empty TextField has the placeholder `Ada Lovelace`
+- **THEN** the terminal shows `Ada Lovelace` dimmed in the field
 
 #### Scenario: Obscured field
 - **WHEN** a TextField with the variant `obscured` receives `secret`

@@ -2,7 +2,7 @@
 
 ## Why
 
-After M4, agents can show forms and confirmations, but the renderer supports only 8 of the 18 v0.9 basic catalog components, so agents cannot use lists, tabs, choices or sliders. a2ui-term also opens panes only in tmux, while many users run Zellij, WezTerm or kitty. This change closes both gaps and prepares the first public release.
+After M4, agents can show forms and confirmations, but the renderer supports only 8 of the 18 1.0 basic catalog components, so agents cannot use lists, tabs, choices or sliders. a2ui-term also opens panes only in tmux, while many users run Zellij, WezTerm or kitty. This change closes both gaps and prepares the first public release.
 
 ## What Changes
 

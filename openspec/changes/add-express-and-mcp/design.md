@@ -2,15 +2,15 @@
 
 ## Context
 
-M1 to M3 provide the renderer, the socket protocol, the client and the pane launcher. See `proposal.md` for motivation. The following facts about `@a2ui/agent@0.1.0` were verified on 2026-11-23 with a Node.js prototype against the v0.9 basic catalog of `@a2ui/web_core@0.15.0`:
+M1 to M3 provide the renderer, the socket protocol, the client and the pane launcher. See `proposal.md` for motivation. The following facts about `@a2ui/agent@0.1.0` were verified on 2026-11-23 with a Node.js prototype against the 1.0 basic catalog of `@a2ui/web_core@0.15.0`:
 
 - `new A2uiGenerator([new CatalogConfig(catalog, transformers)], undefined, new ExpressFormatFactory())` builds a generator. `createProcessor({ supportedCatalogIds: [catalog.id] })` returns a request processor.
-- `processor.parseResponse(text, { wrapped: false })` compiles Express without `<a2ui>` tags and returns parts whose `a2ui` field holds v0.9 messages. Without `surface(...)`, the surface id is `main`.
+- `processor.parseResponse(text, { wrapped: false })` compiles Express without `<a2ui>` tags and returns parts whose `a2ui` field holds 1.0 messages. A new surface compiles to one `createSurface` message with `components` and `dataModel`, and bindings compile to `@path` and `@call`. Without `surface(...)`, the surface id is `main`.
 - Errors are `A2uiError` subclasses with `code`, `message`, and for compile errors `detail`, `line`, `column` and `helpMessage`. A syntax error reports `line: 3, column: 0`; a validation error such as an unknown component reports no line.
 - Without a state, Express that only assigns data to an existing surface fails with `A2uiIntegrityError`, because the stateless check sees no surface.
 - With `state: RendererState.of(messageProcessor)`, `parseResponse` validates against the live renderer and applies the messages to it, all or nothing. A failing response leaves the data model unchanged.
 - `new ComponentPruningTransformer(names)` limits the catalog. The pruned catalog changes both compile validation and `promptSnippet`; a pruned-out component fails with "Component 'X' is not defined in the catalog."
-- `processor.promptSnippet` holds the Express grammar and the signatures of the catalog components (about 11 KB for four components).
+- `processor.promptSnippet` holds the Express grammar and the signatures of the catalog components (about 16 KB for the eight M1 components). It lists Text with `text` and `variant` only, and TextField with `placeholder`.
 
 ## Goals / Non-Goals
 
@@ -50,7 +50,7 @@ Before it opens a pane or sends anything, the client compiles the Express text w
 
 ### Guide
 
-`a2ui_guide` returns `processor.promptSnippet` of the pruned catalog plus a short section on a2ui-term specifics (surface ids, actions come back as tool results). Tool descriptions stay under about 600 characters each and contain one Express example:
+`a2ui_guide` returns `processor.promptSnippet` of the pruned catalog plus a short section on a2ui-term specifics: surface ids, actions come back as tool results, and headings are Markdown (`## Title`) in a Text, because 1.0 Text has no heading variants. Tool descriptions stay under about 600 characters each and contain one Express example:
 
 ```
 surface("confirm")
