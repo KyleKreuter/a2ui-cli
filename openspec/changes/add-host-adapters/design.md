@@ -2,15 +2,7 @@
 
 ## Context
 
-M2 (`add-pane-server`) provides `serve`, the socket client and the session state file. This change adds pane creation. See `proposal.md` for motivation.
-
-Host command facts were checked on 2026-11-23 against the Herdr documentation (`herdr.dev/tui/docs/cli-reference/`, `herdrdev/herdr-app` `docs/commands.md` on branch `master`). Neither Herdr nor Herdr App is installed on the authoring machine; tmux is.
-
-- Herdr TUI sets `HERDR_ENV=1`, `HERDR_PANE_ID`, `HERDR_TAB_ID`, `HERDR_WORKSPACE_ID` and `HERDR_SOCKET_PATH` in its panes.
-- `herdr pane split [--current] --direction right|down [--focus|--no-focus]` prints JSON with the new pane id at `.result.pane.pane_id`. Focus is unchanged by default.
-- `herdr pane run <pane_id> <command>` types the command plus Enter into the pane's shell. `herdr pane close <pane_id>` closes it.
-- Herdr TUI has no CLI command that focuses a pane by id; `herdr pane focus` moves focus by direction only.
-- `herdr-app do pane.split` takes a JSON object with the required `direction` and the optional `pane`, `argv` and `mod`. `pane.focus` and `pane.close` exist as actions.
+M2 (`add-pane-server`) provides `serve`, the socket client and the session state file. This change adds pane creation. See `proposal.md` for motivation. tmux is the only bundled host in this change; it is installed on the authoring machine (`/opt/homebrew/bin/tmux`).
 
 ## Goals / Non-Goals
 
@@ -18,11 +10,13 @@ Host command facts were checked on 2026-11-23 against the Herdr documentation (`
 
 - The core (renderer, protocol, sessions, MCP) depends only on the `HostAdapter` interface.
 - Every adapter is testable without the host installed.
+- A host that needs one command per action can be added as a TOML file, without TypeScript.
 
 **Non-Goals:**
 
 - Moving or resizing panes after creation.
 - Reusing an existing pane that runs something else.
+- Built-in TypeScript adapters. When a later host needs multi-step logic (for example, parse a pane id, then run a command in it), that change adds the built-in kind behind the same interface.
 
 ## Decisions
 
@@ -34,25 +28,17 @@ Host command facts were checked on 2026-11-23 against the Herdr documentation (`
 
 `CommandRunner.run(argv, { timeoutMs, env })` wraps `execFile` with `shell: false` and kills the process on timeout. `which(bin)` wraps the `which` package. `FakeRunner` records every `argv` and returns scripted results; adapter tests snapshot the recorded calls.
 
-### Registry order and lazy loading
+### Registry order
 
-`src/hosts/registry.ts` collects adapters in this order: built-in detection rules, bundled TOML, user TOML (replaces by name), external programs. Built-in entries hold only `{ name, priority, detect, load: () => import('./builtin/<name>.js') }`. The registry calls `load()` after a positive detection or a forced selection. `tsup` keeps the dynamic imports as separate chunks.
+`src/hosts/registry.ts` collects adapters in this order: bundled TOML, user TOML (replaces by name), external programs. Declarative detection runs in-process and needs no host program; external detection starts the adapter program with a 500 ms timeout, in parallel for all programs.
 
 ### Priorities
 
-Herdr TUI 60, tmux 50, Herdr App 40. The innermost host has the highest priority, because a tmux session inside a Herdr App terminal must split inside tmux. M5 adds Zellij 50, WezTerm 30 and kitty 30.
-
-### Herdr TUI capabilities
-
-`splitDirection: true`, `keepFocus: true`, `close: true`, `focus: false`, because no by-id focus command exists. The adapter quotes the renderer command with `shell-quote` for `herdr pane run`, since that command types into a shell. This is the one place where a shell string is built; the adapter still starts `herdr` itself without a shell.
-
-### Herdr App capabilities
-
-`splitDirection: true`, `focus: true`, `close: true`. `keepFocus: false` until the documentation states whether `pane.split` moves focus. The adapter passes the renderer as `argv` in the JSON argument, so no shell string is needed.
+tmux 50. External adapters report their own priority. The innermost host gets the highest priority, because a tmux session inside another terminal host must split inside tmux. M5 adds Zellij 50, WezTerm 30 and kitty 30.
 
 ### Declarative format
 
-The TOML schema is a zod schema in `src/hosts/declarative.ts`. Empty placeholder values remove their argument. `{argv...}` expands in place to several arguments. `capture = "json:/result/pane/pane_id"` uses a JSON Pointer (RFC 6901).
+The TOML schema is a zod schema in `src/hosts/declarative.ts`. Empty placeholder values remove their argument. `{argv...}` expands in place to several arguments. `{cmd}` is the renderer argv joined with `shell-quote`, for hosts such as tmux whose command argument is a shell string; the host program itself still starts without a shell. `capture = "json:/result/pane/pane_id"` uses a JSON Pointer (RFC 6901).
 
 ### External programs
 
@@ -72,11 +58,6 @@ On macOS, run `open -a Terminal <script>` with a temporary executable script tha
 
 ## Risks / Trade-offs
 
-- [`herdr pane run` types into a shell, so a slow shell start or an unusual shell can break the command] → Readiness waits on the socket, not on the pane. The timeout path closes the pane and reports the host.
+- [tmux runs `{cmd}` through the user's shell inside the new pane, so an unusual shell configuration can break the start] → Readiness waits on the socket, not on the pane. The timeout path closes the pane and reports the host.
 - [External adapter scanning runs any matching program on `PATH`] → Detection has a 500 ms timeout, the feature can be turned off, and `hosts` shows the full program path.
 - [Host CLIs change their flags] → Each adapter has argv snapshot tests; a TOML override lets users fix a bundled definition without a release.
-
-## Open Questions
-
-- Which environment variable identifies a terminal inside Herdr App. The documentation read on 2026-11-23 does not name one; `HC_TERMINAL_ID` is a candidate. Confirm with `herdr-app --skill` or the Herdr App source before implementing task 4.2. The answer changes only the detection rule of one adapter.
-- Whether `herdr-app do pane.split` returns the new pane id at the top level (`pane`) or nested. Confirm with a real call during task 4.2; it changes one capture path.

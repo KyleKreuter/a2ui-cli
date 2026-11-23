@@ -7,7 +7,7 @@ Identifies which renderer a command talks to, and defines where each session kee
 ## ADDED Requirements
 
 ### Requirement: Session id resolution
-Commands SHALL resolve the session id in this order: the `--session` flag, the `A2UI_TERM_SESSION` environment variable, an id derived from the host pane id (`HERDR_PANE_ID`, `TMUX_PANE`, `ZELLIJ_PANE_ID`, `WEZTERM_PANE`, `KITTY_WINDOW_ID`), then `default`.
+Commands SHALL resolve the session id in this order: the `--session` flag, the `A2UI_TERM_SESSION` environment variable, an id derived from the host pane id (`TMUX_PANE`, `ZELLIJ_PANE_ID`, `WEZTERM_PANE`, `KITTY_WINDOW_ID`), then `default`.
 
 #### Scenario: Flag wins over environment
 - **WHEN** `A2UI_TERM_SESSION=env` is set and the user passes `--session flag`

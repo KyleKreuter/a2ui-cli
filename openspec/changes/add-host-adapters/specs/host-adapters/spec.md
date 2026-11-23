@@ -14,7 +14,7 @@ a2ui-term SHALL run all commands that do not open a pane on a system with no sup
 - **THEN** `a2ui-term hosts` exits with code 0 and lists every adapter as not present
 
 ### Requirement: Detection without side effects
-Adapter detection SHALL read only environment variables and `PATH` lookups, SHALL start no host process, and SHALL finish for all built-in and declarative adapters within 100 ms in total.
+Adapter detection SHALL read only environment variables and `PATH` lookups, SHALL start no host process, and SHALL finish for all declarative adapters within 100 ms in total.
 
 #### Scenario: Detect inside tmux
 - **WHEN** `TMUX` is set and `tmux` is on `PATH`
@@ -27,9 +27,9 @@ Adapter detection SHALL read only environment variables and `PATH` lookups, SHAL
 ### Requirement: Adapter selection
 With `--host <name>` or `A2UI_TERM_HOST` set, a2ui-term SHALL use exactly that adapter and SHALL fail with its reason when it is unusable. Otherwise it SHALL use the present adapter with the highest priority, and the alphabetically first name on a tie. Adapters in `disabled_hosts` SHALL never be selected.
 
-#### Scenario: Nested hosts
-- **WHEN** tmux runs inside a Herdr App terminal, so both adapters report present
-- **THEN** the tmux adapter (priority 50) is selected over Herdr App (priority 40)
+#### Scenario: Two hosts present
+- **WHEN** tmux (priority 50) and an external adapter `foo` (priority 40) both report present
+- **THEN** the tmux adapter is selected
 
 #### Scenario: Forced host is unusable
 - **WHEN** the user passes `--host tmux` and `tmux` is not on `PATH`
@@ -45,27 +45,6 @@ Each adapter SHALL declare the capabilities `splitDirection`, `focus`, `close` a
 #### Scenario: Host cannot focus panes
 - **WHEN** the selected adapter declares `focus = false` and a client sends `focus`
 - **THEN** the renderer shows a hint in its status line and runs no host command
-
-### Requirement: Built-in Herdr TUI adapter
-The Herdr TUI adapter SHALL be present when `HERDR_ENV=1` and `herdr` is on `PATH`, with priority 60. It SHALL open a pane with `herdr pane split --current --direction <right|down> --no-focus|--focus`, read the new pane id from `result.pane.pane_id` in the JSON output, start the renderer with `herdr pane run <pane id> <command>`, and close panes with `herdr pane close <pane id>`.
-
-#### Scenario: Open a pane in Herdr
-- **WHEN** the Herdr TUI adapter opens a pane to the right without focus
-- **THEN** it runs `herdr pane split --current --direction right --no-focus`, then `herdr pane run` with the new pane id and the quoted renderer command
-
-### Requirement: Built-in Herdr App adapter
-The Herdr App adapter SHALL be present when its terminal environment variable is set and `herdr-app` is on `PATH`, with priority 40. It SHALL open a pane with `herdr-app do pane.split` and a JSON argument that holds `direction` and the renderer `argv`.
-
-#### Scenario: Open a pane in Herdr App
-- **WHEN** the Herdr App adapter opens a pane below
-- **THEN** it runs `herdr-app do pane.split` with a JSON argument whose `direction` is `down` and whose `argv` starts the renderer
-
-### Requirement: Built-in adapters load lazily
-The code of a built-in adapter SHALL load only when its detection is positive or the user selects it by name.
-
-#### Scenario: Outside Herdr
-- **WHEN** `HERDR_ENV` is not set and no host is forced
-- **THEN** the Herdr TUI adapter module is not loaded
 
 ### Requirement: Declarative TOML adapters
 a2ui-term SHALL load adapter definitions from TOML files bundled with the package and from `~/.config/a2ui-term/hosts/<name>.toml`. A user file SHALL replace a bundled file with the same name. Each file SHALL define `name`, `priority`, detection rules (`env_any`, `requires_bin`), capabilities, and `argv` templates for `open`, `focus` and `close`.
@@ -109,7 +88,7 @@ When `external_adapters` is true, a2ui-term SHALL treat every program `a2ui-term
 - **THEN** a2ui-term stops the process and lists `foo` as unusable with a timeout reason
 
 ### Requirement: Hosts diagnostics command
-`a2ui-term hosts [--json]` SHALL list every adapter with its source (built-in, bundled, user file, external), detection result, priority, capabilities, the reason for an unusable adapter, and which adapter would be selected.
+`a2ui-term hosts [--json]` SHALL list every adapter with its source (bundled, user file, external), detection result, priority, capabilities, the reason for an unusable adapter, and which adapter would be selected.
 
 #### Scenario: Machine-readable output
 - **WHEN** the user runs `a2ui-term hosts --json`

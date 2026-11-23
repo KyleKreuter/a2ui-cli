@@ -41,7 +41,7 @@ Read the surface theme's primary color through the surface model. Use Ink's `cha
 
 ### Adapter commands
 
-The Zellij, WezTerm and kitty commands come from the original plan and are unverified. Each task verifies the command against the host's current documentation and, where possible, a real install before adding the TOML file. kitty remote control needs `allow_remote_control` in the user's kitty configuration; the kitty adapter reports unusable with that reason when `kitten @ ls` fails, which needs a detection rule beyond the TOML format. If that check cannot be expressed in TOML, kitty becomes a built-in adapter.
+The Zellij, WezTerm and kitty commands come from the original plan and are unverified. Each task verifies the command against the host's current documentation and, where possible, a real install before adding the TOML file. kitty remote control needs `allow_remote_control` in the user's kitty configuration; the kitty adapter reports unusable with that reason when `kitten @ ls` fails, which needs a detection rule beyond the TOML format. If that check cannot be expressed in TOML, this change adds the built-in TypeScript adapter kind that M3 left out, and kitty becomes the first built-in adapter.
 
 ### Release
 
@@ -50,5 +50,5 @@ GitHub Actions publishes on tags `v*` with `npm publish --provenance`. A check s
 ## Risks / Trade-offs
 
 - [The own focus registry replaces a working M1 mechanism] → Land it behind the existing focus tests from M1 before adding new components.
-- [kitty detection may not fit the declarative format] → Fallback to a built-in adapter, as described above.
+- [kitty detection may not fit the declarative format] → Add the built-in adapter kind, as described above.
 - [Homebrew formula maintenance] → Document the formula only; do not run a tap in this change.

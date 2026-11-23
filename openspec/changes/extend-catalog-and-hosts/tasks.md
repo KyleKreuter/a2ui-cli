@@ -23,7 +23,7 @@
 
 - [ ] 4.1 Verify the Zellij command against its documentation, add `zellij.toml`, and verify `FakeRunner` snapshots for both directions
 - [ ] 4.2 Verify the WezTerm command, add `wezterm.toml`, and verify `FakeRunner` snapshots and pane id capture
-- [ ] 4.3 Verify the kitty command and the remote control requirement, add `kitty.toml` or a built-in adapter, and verify `FakeRunner` snapshots and the unusable reason when remote control is off
+- [ ] 4.3 Verify the kitty command and the remote control requirement, add `kitty.toml` or, if detection needs it, the built-in adapter kind with a kitty adapter, and verify `FakeRunner` snapshots and the unusable reason when remote control is off
 - [ ] 4.4 Document the new hosts in `docs/hosts.md` and verify the docs list the detection variable and priority of every bundled adapter
 
 ## 5. Release

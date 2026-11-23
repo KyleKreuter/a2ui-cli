@@ -7,7 +7,7 @@ Render [A2UI](https://a2ui.org) surfaces in a terminal pane, and drive them from
 ## What it does
 
 - Renders A2UI v0.9 surfaces in the terminal with [Ink](https://github.com/vadimdemedes/ink).
-- Opens the renderer in a new pane next to you: tmux, Herdr TUI and Herdr App first; Zellij, WezTerm and kitty later.
+- Opens the renderer in a new pane next to you: tmux first, then Zellij, WezTerm and kitty. Other hosts plug in as TOML files or external programs.
 - Lets scripts show UI and wait for the user's answer: `a2ui-term ask form.jsonl` prints the user's action as JSON.
 - Runs as an MCP server (`a2ui-term mcp`) so that agents such as Claude Code, GitHub Copilot CLI and Codex can ask the user through terminal UI.
 - Accepts A2UI Express, a compact UI notation that costs agents fewer tokens than A2UI JSON.
@@ -22,7 +22,7 @@ Each milestone is one OpenSpec change with a proposal, specs, a design and tasks
 |---|---|---|
 | M1 | [`add-local-rendering`](openspec/changes/add-local-rendering/) | Project setup, runtime, Ink renderer for 8 components, `demo` |
 | M2 | [`add-pane-server`](openspec/changes/add-pane-server/) | Sessions, socket protocol, `serve`, `send`, `ask`, `close` |
-| M3 | [`add-host-adapters`](openspec/changes/add-host-adapters/) | Host adapters (tmux, Herdr TUI, Herdr App, TOML, external), `open`, `hosts`, configuration |
+| M3 | [`add-host-adapters`](openspec/changes/add-host-adapters/) | Host adapters (tmux, TOML, external programs), `open`, `hosts`, configuration |
 | M4 | [`add-express-and-mcp`](openspec/changes/add-express-and-mcp/) | Express input, `compile`, MCP server, `doctor` |
 | M5 | [`extend-catalog-and-hosts`](openspec/changes/extend-catalog-and-hosts/) | Remaining components, Zellij, WezTerm, kitty, npm release |
 
