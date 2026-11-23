@@ -15,6 +15,7 @@ export function TextField({ node, props }: InkComponentProps) {
   const [edited, setEdited] = useState(false);
   const variant = enumOf(props.variant, VARIANTS, 'shortText');
   const value = textOf(props.value);
+  const placeholder = textOf(props.placeholder);
   const setValue = setterOf(props.value);
 
   useEffect(() => {
@@ -44,13 +45,14 @@ export function TextField({ node, props }: InkComponentProps) {
           <TextInput
             value={value}
             mask={mask}
+            placeholder={placeholder}
             onChange={(next) => {
               setEdited(true);
               setValue(variant === 'number' ? next.replace(/[^\d.,+-]/g, '') : next);
             }}
           />
         ) : (
-          <Text dimColor={!isFocused}>{shown === '' ? '…' : shown}</Text>
+          <Text dimColor={!isFocused || shown === ''}>{shown || placeholder || '…'}</Text>
         )}
       </Box>
       {edited &&

@@ -51,6 +51,9 @@ export async function runDemo(
   runtime.onAction((event) => {
     io.logger.write('action', { ...event });
   });
+  runtime.onOutbound((message) => {
+    io.logger.write('outbound', { ...message });
+  });
   const errors = runtime.applyText(input);
   for (const error of errors) {
     io.logger.write('error', { ...error });

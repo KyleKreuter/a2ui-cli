@@ -3,12 +3,14 @@ import {
   MessageProcessor,
   basicCatalog,
   type ActionPayload,
+  type CallAgentFunctionMessage,
   type RendererErrorMessage,
+  type RendererFunctionResponseMessage,
   type SurfaceModel,
 } from './webcore.js';
 
 /** The A2UI protocol version that a2ui-term accepts. */
-export const PROTOCOL_VERSION = 'v0.9';
+export const PROTOCOL_VERSION = '1.0';
 
 /** The id of the catalog that a2ui-term renders. */
 export const CATALOG_ID = basicCatalog.id;
@@ -20,6 +22,8 @@ export interface ActionEvent {
   readonly sourceComponentId: string;
   readonly timestamp: string;
   readonly context: Record<string, unknown>;
+  /** Human-readable description of the action, if the action defines `userMessage`. */
+  readonly userMessage?: string;
   /** Snapshot of the surface's data model, present if the surface has `sendDataModel`. */
   readonly dataModel?: Record<string, unknown>;
 }
@@ -35,10 +39,16 @@ export interface RuntimeError {
 
 export type ActionHandler = (event: ActionEvent) => void;
 
+/** A message from the renderer to the agent, other than an action event. */
+export type OutboundMessage = RendererFunctionResponseMessage | CallAgentFunctionMessage;
+
+export type OutboundHandler = (message: OutboundMessage) => void;
+
 type Unsubscribe = () => void;
 
 /**
- * Applies A2UI v0.9 messages to surface state and reports user actions.
+ * Applies A2UI 1.0 messages to surface state and reports user actions and
+ * outbound messages for the agent.
  *
  * Each message is applied on its own, so an invalid message never blocks the
  * messages after it.
@@ -46,14 +56,25 @@ type Unsubscribe = () => void;
 export class A2uiRuntime {
   readonly processor: MessageProcessor;
   private readonly actionHandlers = new Set<ActionHandler>();
+  private readonly outboundHandlers = new Set<OutboundHandler>();
 
   constructor() {
-    this.processor = new MessageProcessor([basicCatalog], (payload) => {
-      const event = this.toActionEvent(payload);
-      for (const handler of this.actionHandlers) {
-        handler(event);
-      }
-    });
+    this.processor = new MessageProcessor(
+      [basicCatalog],
+      (payload) => {
+        const event = this.toActionEvent(payload);
+        for (const handler of this.actionHandlers) {
+          handler(event);
+        }
+      },
+      {
+        outboundListener: (message) => {
+          for (const handler of this.outboundHandlers) {
+            handler(message);
+          }
+        },
+      },
+    );
   }
 
   /** Calls `handler` for every action the user triggers on any surface. */
@@ -61,6 +82,14 @@ export class A2uiRuntime {
     this.actionHandlers.add(handler);
     return () => {
       this.actionHandlers.delete(handler);
+    };
+  }
+
+  /** Calls `handler` for every renderer function response and agent function call. */
+  onOutbound(handler: OutboundHandler): Unsubscribe {
+    this.outboundHandlers.add(handler);
+    return () => {
+      this.outboundHandlers.delete(handler);
     };
   }
 
@@ -100,6 +129,7 @@ export class A2uiRuntime {
 
   dispose(): void {
     this.actionHandlers.clear();
+    this.outboundHandlers.clear();
     this.processor.dispose();
   }
 
@@ -118,6 +148,7 @@ export class A2uiRuntime {
       sourceComponentId: payload.sourceComponentId,
       timestamp: payload.timestamp,
       context: payload.context,
+      ...(payload.userMessage === undefined ? {} : { userMessage: payload.userMessage }),
     };
     const surface = this.processor.getSurface(payload.surfaceId);
     if (!surface?.sendDataModel) {

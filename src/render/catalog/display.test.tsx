@@ -4,6 +4,8 @@ import { renderSurface } from '../../../test/surface.js';
 
 const BOLD = '\u001B[1m';
 const DIM = '\u001B[2m';
+const ITALIC = '\u001B[3m';
+const YELLOW = '\u001B[33m';
 
 describe('registry and placeholder', () => {
   it('renders an unsupported component next to a supported sibling', () => {
@@ -20,11 +22,34 @@ describe('registry and placeholder', () => {
 });
 
 describe('Text', () => {
-  it('renders headings bold', () => {
-    const { lastFrame } = renderSurface([
-      { id: 'root', component: 'Text', text: 'Sign up', variant: 'h2' },
-    ]);
+  it('renders a Markdown heading bold without its marks', () => {
+    const { lastFrame } = renderSurface([{ id: 'root', component: 'Text', text: '## Sign up' }]);
     expect(lastFrame()).toContain(`${BOLD}Sign up`);
+    expect(plain(lastFrame())).toBe('Sign up');
+  });
+
+  it('renders inline Markdown styles', () => {
+    const { lastFrame } = renderSurface([
+      { id: 'root', component: 'Text', text: 'Press **Enter**, *then* `q`' },
+    ]);
+    const frame = lastFrame() ?? '';
+    expect(plain(frame)).toBe('Press Enter, then q');
+    expect(frame).toContain(`${BOLD}Enter`);
+    expect(frame).toContain(`${ITALIC}then`);
+    expect(frame).toContain(`${YELLOW}q`);
+  });
+
+  it('keeps a caption dimmed after a bold span', () => {
+    const { lastFrame } = renderSurface([
+      { id: 'root', component: 'Text', text: 'Press **q** to quit.', variant: 'caption' },
+    ]);
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain(`${DIM} to quit.`);
+  });
+
+  it('renders list items with bullets', () => {
+    const { lastFrame } = renderSurface([{ id: 'root', component: 'Text', text: '- one\n- two' }]);
+    expect(plain(lastFrame())).toBe('• one\n• two');
   });
 
   it('renders captions dimmed', () => {
@@ -41,7 +66,7 @@ describe('Text', () => {
 
   it('shows the bound value and follows data model updates', async () => {
     const { lastFrame, surface } = renderSurface(
-      [{ id: 'root', component: 'Text', text: { path: '/status' } }],
+      [{ id: 'root', component: 'Text', text: { '@path': '/status' } }],
       { status: '10%' },
     );
     expect(lastFrame()).toBe('10%');

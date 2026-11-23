@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest';
-import { A2uiRuntime, CATALOG_ID, PROTOCOL_VERSION, type ActionEvent } from './processor.js';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  A2uiRuntime,
+  CATALOG_ID,
+  PROTOCOL_VERSION,
+  type ActionEvent,
+  type OutboundMessage,
+} from './processor.js';
 import { NodeResolver, isComponentNode, peekValue, type ComponentNode } from './webcore.js';
 
 const v = PROTOCOL_VERSION;
@@ -39,39 +45,43 @@ function prop(node: ComponentNode, name: string): unknown {
   return peekValue(node.props)[name];
 }
 
-const submitForm = [
-  createSurface('form'),
-  updateComponents('form', [
-    { id: 'root', component: 'Column', children: ['name', 'submit'] },
-    { id: 'name', component: 'TextField', label: 'Name', value: { path: '/form/name' } },
-    {
-      id: 'submit',
-      component: 'Button',
-      child: 'submit-label',
-      action: { event: { name: 'submit', context: { name: { path: '/form/name' } } } },
-    },
-    { id: 'submit-label', component: 'Text', text: 'Submit' },
-  ]),
-];
+function submitForm(event: Record<string, unknown> = {}) {
+  return [
+    createSurface('form'),
+    updateComponents('form', [
+      { id: 'root', component: 'Column', children: ['name', 'submit'] },
+      { id: 'name', component: 'TextField', label: 'Name', value: { '@path': '/form/name' } },
+      {
+        id: 'submit',
+        component: 'Button',
+        child: 'submitLabel',
+        action: {
+          event: { name: 'submit', context: { name: { '@path': '/form/name' } }, ...event },
+        },
+      },
+      { id: 'submitLabel', component: 'Text', text: 'Submit' },
+    ]),
+  ];
+}
 
 describe('A2uiRuntime', () => {
   describe('pinned protocol version', () => {
-    it('creates a surface for a v0.9 message', () => {
+    it('creates a surface for a 1.0 message', () => {
       const { runtime } = setup();
       expect(runtime.apply([createSurface('main')])).toEqual([]);
       expect([...runtime.surfaces().keys()]).toEqual(['main']);
     });
 
-    it('rejects another version, names v0.9, and keeps existing surfaces', () => {
+    it('rejects another version, names 1.0, and keeps existing surfaces', () => {
       const { runtime } = setup();
       runtime.apply([createSurface('main')]);
       const errors = runtime.apply([
-        { version: '1.0', deleteSurface: { surfaceId: 'main' } },
+        { version: 'v0.9', deleteSurface: { surfaceId: 'main' } },
         { createSurface: { surfaceId: 'other', catalogId: CATALOG_ID } },
       ]);
       expect(errors).toHaveLength(2);
       expect(errors[0]).toMatchObject({ code: 'UNSUPPORTED_VERSION', surfaceId: 'main' });
-      expect(errors[0]?.message).toContain('v0.9');
+      expect(errors[0]?.message).toBe('Message has "v0.9". a2ui-term supports A2UI 1.0 only.');
       expect(errors[1]?.message).toContain('no version');
       expect([...runtime.surfaces().keys()]).toEqual(['main']);
     });
@@ -105,7 +115,7 @@ describe('A2uiRuntime', () => {
       const { runtime } = setup();
       const input = [
         JSON.stringify(createSurface('main')),
-        '{"version": "v0.9", "updateComp',
+        '{"version": "1.0", "updateComp',
         JSON.stringify(updateComponents('main', [{ id: 'root', component: 'Text', text: 'Hi' }])),
       ].join('\n');
       const errors = runtime.applyText(input);
@@ -140,7 +150,7 @@ describe('A2uiRuntime', () => {
       const { runtime } = setup();
       runtime.apply([
         createSurface('main'),
-        updateComponents('main', [{ id: 'root', component: 'Text', text: { path: '/status' } }]),
+        updateComponents('main', [{ id: 'root', component: 'Text', text: { '@path': '/status' } }]),
         updateDataModel('main', '/status', '10%'),
       ]);
       const surface = runtime.surfaces().get('main');
@@ -156,7 +166,7 @@ describe('A2uiRuntime', () => {
   describe('two-way binding', () => {
     it('writes TextField input to the data model', () => {
       const { runtime } = setup();
-      runtime.apply(submitForm);
+      runtime.apply(submitForm());
       const column = rootOf(runtime, 'form');
       const children = prop(column, 'children') as unknown[];
       const field = children[0];
@@ -181,7 +191,7 @@ describe('A2uiRuntime', () => {
 
     it('emits the resolved context', () => {
       const { runtime, events } = setup();
-      runtime.apply([...submitForm, updateDataModel('form', '/form/name', 'Ada')]);
+      runtime.apply([...submitForm(), updateDataModel('form', '/form/name', 'Ada')]);
       pressSubmit(runtime);
       expect(events).toEqual([
         {
@@ -198,11 +208,53 @@ describe('A2uiRuntime', () => {
       const { runtime, events } = setup();
       runtime.apply([
         createSurface('form', { sendDataModel: true }),
-        ...submitForm.slice(1),
+        ...submitForm().slice(1),
         updateDataModel('form', '/form/name', 'Ada'),
       ]);
       pressSubmit(runtime);
       expect(events[0]?.dataModel).toEqual({ form: { name: 'Ada' } });
+    });
+
+    it('adds the resolved user message', () => {
+      const { runtime, events } = setup();
+      runtime.apply(
+        submitForm({
+          userMessage: { '@call': 'formatString', args: { value: 'Sent ${/form/name}' } },
+        }),
+      );
+      runtime.apply([updateDataModel('form', '/form/name', 'Ada')]);
+      pressSubmit(runtime);
+      expect(events[0]?.userMessage).toBe('Sent Ada');
+    });
+  });
+
+  describe('renderer function calls', () => {
+    it('reports the response to a call as an outbound message', async () => {
+      const { runtime } = setup();
+      const outbound: OutboundMessage[] = [];
+      runtime.onOutbound((message) => outbound.push(message));
+      runtime.apply([createSurface('main')]);
+      const errors = runtime.apply([
+        {
+          version: v,
+          callRendererFunction: {
+            surfaceId: 'main',
+            functionCallId: 'c1',
+            callFunction: { '@call': 'required', catalogId: CATALOG_ID, args: { value: 'x' } },
+          },
+        },
+      ]);
+      expect(errors).toEqual([]);
+      await vi.waitFor(() => {
+        expect(outbound).toHaveLength(1);
+      });
+      expect(outbound[0]).toMatchObject({
+        version: '1.0',
+        rendererFunctionResponse: {
+          functionCallId: 'c1',
+          error: { code: 'INVALID_FUNCTION_CALL' },
+        },
+      });
     });
   });
 });

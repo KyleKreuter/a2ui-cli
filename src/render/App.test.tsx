@@ -32,12 +32,12 @@ async function press(stdin: { write: (data: string) => void }, ...sequence: stri
 
 const form = surfaceMessages('form', [
   { id: 'root', component: 'Column', children: ['name', 'submit'] },
-  { id: 'name', component: 'TextField', label: 'Name', value: { path: '/name' } },
+  { id: 'name', component: 'TextField', label: 'Name', value: { '@path': '/name' } },
   {
     id: 'submit',
     component: 'Button',
     child: 'label',
-    action: { event: { name: 'submit', context: { name: { path: '/name' } } } },
+    action: { event: { name: 'submit', context: { name: { '@path': '/name' } } } },
   },
   { id: 'label', component: 'Text', text: 'Submit' },
 ]);

@@ -8,7 +8,8 @@ Render [A2UI](https://a2ui.org) surfaces in a terminal pane, and drive them from
 
 Available now:
 
-- Renders A2UI v0.9 surfaces in the terminal with [Ink](https://github.com/vadimdemedes/ink): Text, Row, Column, Card, Divider, Button, TextField and CheckBox. Other components show as `[unsupported: <type>]`.
+- Renders A2UI 1.0 surfaces in the terminal with [Ink](https://github.com/vadimdemedes/ink): Text, Row, Column, Card, Divider, Button, TextField and CheckBox. Other components show as `[unsupported: <type>]`.
+- Renders a Markdown subset in Text: headings, list items, bold, italic and inline code.
 - `a2ui-term demo` renders A2UI messages from a file or stdin in the current terminal.
 
 Planned (see [Roadmap](#roadmap)):
@@ -38,7 +39,7 @@ npm link
 a2ui-term --version
 ```
 
-The command prints the package version and the supported A2UI version, for example `0.1.0 (A2UI v0.9)`.
+The command prints the package version and the supported A2UI version, for example `0.1.0 (A2UI 1.0)`.
 
 ## Try it: `a2ui-term demo`
 
@@ -63,7 +64,7 @@ The input is JSON Lines (one A2UI message per line) or one JSON array of message
 | `q` or `Esc`             | Quit, except while a text field has focus  |
 | `Ctrl+C`                 | Quit                                       |
 
-The status line shows the last action. The demo also writes every action as one JSON line to its log file:
+The status line shows the last action. The demo also writes every action, every message for the agent (such as the response to a `callRendererFunction` message) and every invalid message as one JSON line to its log file:
 
 | Platform | Log file                                                         |
 | -------- | ---------------------------------------------------------------- |
@@ -77,10 +78,26 @@ On Windows, pass a file: reading keys while stdin is a pipe is not supported the
 
 | File                                                 | Shows                                                            |
 | ---------------------------------------------------- | ---------------------------------------------------------------- |
-| [`examples/hello.jsonl`](examples/hello.jsonl)       | A card with heading, body and caption text                       |
+| [`examples/hello.jsonl`](examples/hello.jsonl)       | A card with a Markdown heading, body text and a caption          |
 | [`examples/form.jsonl`](examples/form.jsonl)         | A sign-up form with text fields, a checkbox, a check and buttons |
 | [`examples/confirm.jsonl`](examples/confirm.jsonl)   | A yes/no confirmation                                            |
 | [`examples/progress.jsonl`](examples/progress.jsonl) | Text bound to the data model, changed by `updateDataModel`       |
+
+### Writing messages for a2ui-term
+
+a2ui-term accepts A2UI 1.0 messages with the [1.0 basic catalog](https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json) only:
+
+- Every message needs `"version": "1.0"`. a2ui-term rejects messages for other versions and messages without a version.
+- Bind values with `{"@path": "/form/name"}` and call functions with `{"@call": "required", "args": {...}}`. The v0.9 forms `{"path": ...}` and `{"call": ...}` do not bind in 1.0: they show as literal values.
+- Component ids must be identifiers: `submitLabel` works, `submit-label` fails validation.
+- Text has no heading variants in 1.0. Write headings as Markdown, for example `"text": "## Sign up"`.
+
+Save this message as `hi.jsonl` and run `a2ui-term demo hi.jsonl`:
+
+<!-- prettier-ignore -->
+```json
+{"version":"1.0","createSurface":{"surfaceId":"hi","catalogId":"https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json","components":[{"id":"root","component":"Text","text":"## Hello, **terminal**"}]}}
+```
 
 ## Roadmap
 

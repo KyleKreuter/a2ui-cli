@@ -16,11 +16,13 @@ export {
   peekValue,
   setValue,
   signal,
-} from '@a2ui/web_core/v0_9';
+} from '@a2ui/web_core/v1_0';
 export type {
   ActionPayload,
+  CallAgentFunctionMessage,
   ComponentNode,
   NodeProps,
   RendererErrorMessage,
+  RendererFunctionResponseMessage,
   Signal,
-} from '@a2ui/web_core/v0_9';
+} from '@a2ui/web_core/v1_0';

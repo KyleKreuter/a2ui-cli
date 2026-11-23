@@ -4,27 +4,27 @@ import { renderSurface, type Component } from '../../../test/surface.js';
 
 const form: Component[] = [
   { id: 'root', component: 'Column', children: ['name', 'secret', 'agree', 'submit'] },
-  { id: 'name', component: 'TextField', label: 'Name', value: { path: '/form/name' } },
+  { id: 'name', component: 'TextField', label: 'Name', value: { '@path': '/form/name' } },
   {
     id: 'secret',
     component: 'TextField',
     label: 'Password',
-    value: { path: '/form/secret' },
+    value: { '@path': '/form/secret' },
     variant: 'obscured',
   },
-  { id: 'agree', component: 'CheckBox', label: 'I agree', value: { path: '/form/agree' } },
+  { id: 'agree', component: 'CheckBox', label: 'I agree', value: { '@path': '/form/agree' } },
   {
     id: 'submit',
     component: 'Button',
-    child: 'submit-label',
+    child: 'submitLabel',
     action: {
       event: {
         name: 'submit',
-        context: { name: { path: '/form/name' }, agree: { path: '/form/agree' } },
+        context: { name: { '@path': '/form/name' }, agree: { '@path': '/form/agree' } },
       },
     },
   },
-  { id: 'submit-label', component: 'Text', text: 'Submit' },
+  { id: 'submitLabel', component: 'Text', text: 'Submit' },
 ];
 
 const initial = { form: { name: '', secret: '', agree: false } };
@@ -95,6 +95,30 @@ describe('TextField', () => {
     expect(plain(lastFrame())).toContain('••••••');
   });
 
+  it('shows the placeholder dimmed in an empty field, with and without focus', async () => {
+    const { lastFrame, stdin } = renderSurface(
+      [
+        { id: 'root', component: 'Column', children: ['first', 'second'] },
+        ...(['first', 'second'] as const).map((id) => ({
+          id,
+          component: 'TextField',
+          label: id,
+          value: { '@path': `/${id}` },
+          placeholder: `${id} hint`,
+        })),
+      ],
+      { first: '', second: '' },
+    );
+    await settle();
+    const lines = plain(lastFrame()).split('\n');
+    expect(lines[1]).toContain('first hint');
+    expect(lines[3]).toContain('second hint');
+    expect(lastFrame()).toContain('\u001B[2msecond hint');
+
+    await press(stdin, 'x');
+    expect(plain(lastFrame())).not.toContain('first hint');
+  });
+
   it('shows the label', () => {
     const { lastFrame } = renderSurface(form, initial);
     expect(plain(lastFrame())).toContain('Name');
@@ -148,7 +172,7 @@ describe('Button', () => {
           action: { event: { name: 'confirm' } },
           checks: [
             {
-              condition: { call: 'required', args: { value: { path: '/name' } } },
+              condition: { '@call': 'required', args: { value: { '@path': '/name' } } },
               message: 'Name is required',
             },
           ],
@@ -171,10 +195,10 @@ describe('TextField checks', () => {
           id: 'root',
           component: 'TextField',
           label: 'Name',
-          value: { path: '/name' },
+          value: { '@path': '/name' },
           checks: [
             {
-              condition: { call: 'required', args: { value: { path: '/name' } } },
+              condition: { '@call': 'required', args: { value: { '@path': '/name' } } },
               message: 'Name is required',
             },
           ],
