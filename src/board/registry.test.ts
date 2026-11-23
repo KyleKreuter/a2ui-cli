@@ -84,8 +84,17 @@ describe('WidgetBoard', () => {
           owner: 'tmux:%3',
           width: 4,
           position: 0,
+          ended: false,
         },
-        { widgetId: 'w2', title: null, label: null, owner: null, width: 6, position: 1 },
+        {
+          widgetId: 'w2',
+          title: null,
+          label: null,
+          owner: null,
+          width: 6,
+          position: 1,
+          ended: false,
+        },
       ]);
     });
 
@@ -232,6 +241,7 @@ describe('WidgetBoard', () => {
         owner: null,
         width: GRID_COLUMNS,
         position: 1,
+        ended: false,
       });
     });
 

@@ -2,7 +2,11 @@ import { constants } from 'node:os';
 import { render, type Instance } from 'ink';
 import { createElement } from 'react';
 import { A2uiRuntime } from '../a2ui/processor.js';
+import { watchOwners } from '../board/owner-watch.js';
 import { WidgetBoard, type BoardResult } from '../board/registry.js';
+import { ProcessRunner } from '../hosts/runner.js';
+import { HOST_ADAPTERS, adapterNamed } from '../hosts/select.js';
+import type { HostIo } from '../launcher/launcher.js';
 import { createLogger, type Logger } from '../log.js';
 import type { CloseReason } from '../protocol/messages.js';
 import { App, type SessionStatus } from '../render/App.js';
@@ -34,10 +38,16 @@ export interface ServeIo {
   readonly env: Env;
   readonly logger: Logger;
   readonly process: ProcessEvents;
+  /** Host access for the owner check. Defaults to the real hosts. */
+  readonly hosts?: Pick<HostIo, 'runner' | 'adapters'>;
+  /** How often the board checks the owner panes. */
+  readonly ownerCheckMs?: number;
 }
 
 export interface ServeOptions {
   readonly session?: string;
+  /** `open` started this renderer in a pane of its own, so `close` may close the pane. */
+  readonly launched?: boolean;
 }
 
 const defaultIo = (): ServeIo => ({
@@ -82,7 +92,15 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
   });
 
   const board = new WidgetBoard(runtime);
+  const adapters = io.hosts?.adapters ?? HOST_ADAPTERS;
+  const stopWatch = watchOwners(board, {
+    adapters,
+    runner: io.hosts?.runner ?? new ProcessRunner(io.env),
+    env: io.env,
+    ...(io.ownerCheckMs === undefined ? {} : { intervalMs: io.ownerCheckMs }),
+  });
   const pane = detectHostPane(io.env);
+  const hostInstance = pane && adapterNamed(pane.host, adapters)?.instance(io.env);
   let status: SessionStatus = { sessionId: session.id, clients: 0 };
   let instance: Instance | undefined;
   let stop: Stop | undefined;
@@ -134,6 +152,7 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
       },
     });
   } catch (error) {
+    stopWatch();
     runtime.dispose();
     return fail(io, `cannot listen on ${session.paths.socket}: ${errorMessage(error)}`);
   }
@@ -142,6 +161,8 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
     pid: process.pid,
     host: pane?.host ?? NO_HOST,
     paneRef: pane?.paneId ?? null,
+    ...(hostInstance ? { hostInstance } : {}),
+    ...(options.launched ? { launched: true } : {}),
     createdAt: new Date().toISOString(),
   });
   io.logger.write('serve started', { session: session.id, socket: session.paths.socket });
@@ -182,6 +203,7 @@ export async function runServe(options: ServeOptions, io: ServeIo = defaultIo())
       io.process.off(signal, listener);
     }
     io.process.off('uncaughtException', onError);
+    stopWatch();
     board.dispose();
     runtime.dispose();
   }

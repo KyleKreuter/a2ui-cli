@@ -188,7 +188,15 @@ describe('widget requests', () => {
       type: 'widgets',
       id: 'l1',
       widgets: [
-        { widgetId: 'w1', title: null, label: null, owner: 'tmux:%3', width: 12, position: 0 },
+        {
+          widgetId: 'w1',
+          title: null,
+          label: null,
+          owner: 'tmux:%3',
+          width: 12,
+          position: 0,
+          ended: false,
+        },
       ],
     });
     client.send({ type: 'remove', id: 'r1', owner: 'tmux:%3' });

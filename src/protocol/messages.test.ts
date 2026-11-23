@@ -23,6 +23,7 @@ describe('parseClientLine', () => {
     [{ type: 'update', id: 'u1', widgetId: 'w1', messages: [] }],
     [{ type: 'remove', id: 'r1', widgetIds: ['w1', 'w2'] }],
     [{ type: 'remove', id: 'r1', owner: 'tmux:%3' }],
+    [{ type: 'remove', id: 'r1', ended: true }],
     [{ type: 'list', id: 'l1' }],
   ])('accepts %j', (message) => {
     expect(parseClientLine(JSON.stringify(message))).toEqual({ ok: true, message });
@@ -64,8 +65,10 @@ describe('parseClientLine', () => {
     ['{"type":"add","id":"a1","messages":[],"width":1.5}', 'width'],
     ['{"type":"add","id":"","messages":[]}', 'id'],
     ['{"type":"update","id":"u1","messages":[]}', 'widgetId'],
-    ['{"type":"remove","id":"r1"}', 'Expected either "widgetIds" or "owner"'],
-    ['{"type":"remove","id":"r1","widgetIds":["w1"],"owner":"x"}', 'Expected either'],
+    ['{"type":"remove","id":"r1"}', 'Expected exactly one of "widgetIds", "owner" and "ended"'],
+    ['{"type":"remove","id":"r1","widgetIds":["w1"],"owner":"x"}', 'Expected exactly one of'],
+    ['{"type":"remove","id":"r1","owner":"x","ended":true}', 'Expected exactly one of'],
+    ['{"type":"remove","id":"r1","ended":false}', 'Invalid'],
     ['{"type":"remove","id":"r1","widgetIds":[]}', 'widgetIds'],
     ['{"type":"list"}', 'id'],
   ])('rejects the widget request %s', (line, error) => {
@@ -123,7 +126,15 @@ describe('parseServerLine', () => {
         type: 'widgets',
         id: 'l1',
         widgets: [
-          { widgetId: 'w1', title: 'Build', label: null, owner: null, width: 6, position: 0 },
+          {
+            widgetId: 'w1',
+            title: 'Build',
+            label: null,
+            owner: null,
+            width: 6,
+            position: 0,
+            ended: false,
+          },
         ],
       },
     ],

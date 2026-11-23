@@ -194,9 +194,14 @@ function TopBorder({ widget, width }: { readonly widget: Widget; readonly width:
   );
 }
 
-/** The text of the top border line: title, label and widget id. */
-export function frameCaption(widget: Pick<Widget, 'id' | 'title' | 'label'>): string {
-  return [widget.title, widget.label, widget.id].filter(Boolean).join(' · ');
+/** Tag in the top border of a widget whose owner pane is gone. */
+export const ENDED_TAG = 'ended';
+
+/** The text of the top border line: title, label, widget id and the ended tag. */
+export function frameCaption(widget: Pick<Widget, 'id' | 'title' | 'label' | 'ended'>): string {
+  return [widget.title, widget.label, widget.id, widget.ended ? ENDED_TAG : undefined]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 function captionParts(widget: Widget) {
@@ -210,9 +215,12 @@ function captionParts(widget: Widget) {
     }
     parts.push({ text, bold, dim });
   };
-  add(widget.title, true, false);
+  // An ended widget shows everything dimmed except its tag.
+  const ended = widget.ended === true;
+  add(widget.title, !ended, ended);
   add(widget.label, false, true);
-  add(widget.id, false, false);
+  add(widget.id, false, ended);
+  add(ended ? ENDED_TAG : undefined, false, false);
   return parts;
 }
 

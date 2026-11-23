@@ -1,6 +1,6 @@
 import { locateSession } from '../session/session.js';
 import {
-  connect,
+  connectOrOpen,
   defaultClientIo,
   deliver,
   readMessages,
@@ -19,7 +19,7 @@ export async function runSend(
   return runClientCommand(io, async () => {
     const messages = await readMessages(source, io);
     const session = locateSession(options.session, io.env);
-    const client = await connect(session);
+    const client = await connectOrOpen(session, options, io);
     try {
       await deliver(client, messages, options);
     } finally {

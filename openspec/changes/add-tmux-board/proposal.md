@@ -12,12 +12,12 @@ With `add-widget-board`, agents share one board, but the user must start `a2ui-t
 - The board opens as a split next to the calling pane or as its own tmux window.
 - The board marks widgets as ended when their owner pane closes, and `remove --ended` removes them.
 - In tmux, the default widget label is the window name and pane index of the agent.
-- `close` also closes the board pane when the renderer stopped but the pane stays open.
+- `close` also closes the board pane that `open` created when the renderer stopped but the pane stays open.
 - Without tmux, `open` prints the `serve` command to run in another terminal.
 
 ## Out of scope
 
-- Hosts other than tmux (`add-more-hosts`).
+- Hosts other than tmux (`add-terminal-hosts`).
 - Moving the focus to the board. The board never takes the focus; the user switches to it.
 - A configuration file. Placement, direction and size come from flags and environment variables.
 - Floating panes and popups.
@@ -35,6 +35,7 @@ With `add-widget-board`, agents share one board, but the user must start `a2ui-t
 
 ## Impact
 
-- New modules: `src/hosts/` (`types.ts`, `runner.ts`, `tmux.ts`, `select.ts`), `src/launcher/`, `src/commands/open.ts`.
+- New modules: `src/hosts/` (`types.ts`, `runner.ts`, `tmux.ts`, `select.ts`), `src/launcher/`, `src/board/owner-watch.ts`, `src/commands/open.ts`.
+- The session state file gains `hostInstance` and `launched`, and the widget info of `list` gains `ended`.
 - `add`, `send`, `ask`, `remove` and `close` change; the board gains the owner check.
 - No new runtime dependencies. tmux stays a runtime-only dependency.

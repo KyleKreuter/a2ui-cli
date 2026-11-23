@@ -212,11 +212,7 @@ export class PaneServer {
         return result.ok ? { type: 'updated', id } : failed(result.error);
       }
       case 'remove': {
-        const result = renderer.remove(
-          message.owner === undefined
-            ? { widgetIds: message.widgetIds ?? [] }
-            : { owner: message.owner },
-        );
+        const result = renderer.remove(removeTarget(message));
         return result.ok ? { type: 'removed', id, widgetIds: result.value } : failed(result.error);
       }
       case 'list':
@@ -244,4 +240,14 @@ export class PaneServer {
   private log(event: string, data: Record<string, unknown>): void {
     this.options.logger?.write(event, data);
   }
+}
+
+function removeTarget(message: Extract<WidgetRequest, { type: 'remove' }>): RemoveTarget {
+  if (message.owner !== undefined) {
+    return { owner: message.owner };
+  }
+  if (message.ended) {
+    return { ended: true };
+  }
+  return { widgetIds: message.widgetIds ?? [] };
 }

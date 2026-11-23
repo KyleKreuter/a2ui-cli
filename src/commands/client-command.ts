@@ -6,6 +6,8 @@ import {
   RendererClosedError,
   RequestError,
 } from '../client/client.js';
+import { NoHostError, defaultHostIo, openBoard, type HostIo } from '../launcher/launcher.js';
+import { resolvePlacement } from '../launcher/placement.js';
 import { parseMessages } from '../protocol/jsonl.js';
 import type { Env } from '../session/id.js';
 import { resolveOwner } from '../session/owner.js';
@@ -18,13 +20,20 @@ export interface ClientIo {
   readonly stdout: NodeJS.WritableStream;
   readonly stderr: NodeJS.WritableStream;
   readonly env: Env;
+  /** Host access for opening the board. Defaults to the real hosts. */
+  readonly hosts?: HostIo;
 }
 
 export interface SessionOptions {
   readonly session?: string;
 }
 
-export interface SendOptions extends SessionOptions {
+export interface LaunchOptions extends SessionOptions {
+  /** Open the board when no renderer runs. `--no-open` sets it to false. */
+  readonly open?: boolean;
+}
+
+export interface SendOptions extends LaunchOptions {
   /** Remove all surfaces before the input messages. */
   readonly clear?: boolean;
 }
@@ -110,13 +119,53 @@ export async function connect(session: Session): Promise<PaneClient> {
   }
 }
 
-/** Connects to the renderer of the session, runs `action`, and ends the connection. */
+/** The host access of the command: the one of the io, else the real hosts. */
+export function hostsOf(io: ClientIo): HostIo {
+  return io.hosts ?? defaultHostIo(io.env);
+}
+
+/**
+ * Connects to the session renderer. When none runs, opens the board first,
+ * unless `options.open` is false. Placement comes from the environment.
+ */
+export async function connectOrOpen(
+  session: Session,
+  options: LaunchOptions,
+  io: ClientIo,
+): Promise<PaneClient> {
+  try {
+    return await connect(session);
+  } catch (error) {
+    if (!(error instanceof NotRunningError) || options.open === false) {
+      throw error;
+    }
+  }
+  try {
+    await openBoard(session, resolvePlacement({}, io.env), io.env, hostsOf(io));
+  } catch (error) {
+    if (error instanceof NoHostError) {
+      throw new CommandError(
+        ExitCode.error,
+        `no renderer runs for session "${session.id}" and ${error.message}`,
+      );
+    }
+    throw error;
+  }
+  return connect(session);
+}
+
+/**
+ * Connects to the renderer of the session, runs `action`, and ends the
+ * connection. With `launch`, opens the board first when no renderer runs.
+ */
 export async function withClient<T>(
-  options: SessionOptions,
+  options: LaunchOptions,
   io: ClientIo,
   action: (client: PaneClient) => Promise<T>,
+  { launch = false }: { readonly launch?: boolean } = {},
 ): Promise<T> {
-  const client = await connect(locateSession(options.session, io.env));
+  const session = locateSession(options.session, io.env);
+  const client = await (launch ? connectOrOpen(session, options, io) : connect(session));
   try {
     return await action(client);
   } finally {

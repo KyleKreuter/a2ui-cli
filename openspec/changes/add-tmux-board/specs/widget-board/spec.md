@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Ended widgets
-The board SHALL check every 2 seconds, through the host adapter named by the owner's host prefix, whether the owner pane of each widget still exists, for every owner whose adapter supports the owner check. Owners whose host has no such adapter SHALL be skipped. The board SHALL show the widgets of a missing owner with a dimmed frame and the tag `ended`. The board SHALL NOT remove them by itself. `a2ui-term remove --ended` SHALL remove all ended widgets.
+Every 2 seconds, the board SHALL check the owner pane of each widget through the adapter that the owner's host prefix names, and SHALL skip owners without such an adapter, without the owner check, or without the installed host program. Widgets of a missing or dead owner pane SHALL show a dimmed frame with the tag `ended`, SHALL have `"ended": true` in `list`, and SHALL stay ended and on the board.
 
 #### Scenario: Agent pane closes
 - **WHEN** the agent in tmux pane `%3` owns widget `w1` and the user closes pane `%3`
@@ -12,6 +12,9 @@ The board SHALL check every 2 seconds, through the host adapter named by the own
 #### Scenario: Owner of another host
 - **WHEN** widget `w2` has the owner `wezterm:12` and the board runs with only the tmux adapter
 - **THEN** the board does not check `w2` and never marks it as ended
+
+### Requirement: Remove ended widgets
+`a2ui-term remove --ended` SHALL remove all ended widgets and print their ids. It SHALL fail with exit code 1 when widget ids or `--mine` are given too.
 
 #### Scenario: Clean up
 - **WHEN** `w1` and `w4` are ended and the user runs `a2ui-term remove --ended`

@@ -34,10 +34,13 @@ const removeMessage = z
     id: requestId,
     widgetIds: z.array(widgetId).min(1).optional(),
     owner: z.string().min(1).optional(),
+    ended: z.literal(true).optional(),
   })
   .refine(
-    (message) => (message.widgetIds === undefined) !== (message.owner === undefined),
-    'Expected either "widgetIds" or "owner"',
+    (message) =>
+      [message.widgetIds, message.owner, message.ended].filter((value) => value !== undefined)
+        .length === 1,
+    'Expected exactly one of "widgetIds", "owner" and "ended"',
   );
 
 export const clientMessageSchema = z.discriminatedUnion('type', [
@@ -89,6 +92,7 @@ export const widgetInfoSchema = z.object({
   owner: nullableString,
   width: z.number().int(),
   position: z.number().int(),
+  ended: z.boolean(),
 });
 
 export const serverMessageSchema = z.discriminatedUnion('type', [

@@ -13,6 +13,10 @@ export interface SessionState {
   readonly host: string;
   /** Host-specific id of the renderer pane, or null when unknown. */
   readonly paneRef: string | null;
+  /** The host server of the pane, for example the tmux socket path. */
+  readonly hostInstance?: string;
+  /** The launcher opened the pane for this renderer, so `close` may close it. */
+  readonly launched?: boolean;
   readonly createdAt: string;
 }
 

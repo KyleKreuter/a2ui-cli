@@ -2,15 +2,18 @@ import { Command, InvalidArgumentError, Option } from 'commander';
 import { PROTOCOL_VERSION } from './a2ui/processor.js';
 import { DEFAULT_WIDTH, GRID_COLUMNS } from './board/registry.js';
 import { runAdd, type AddOptions } from './commands/add.js';
-import { runAsk } from './commands/ask.js';
+import { runAsk, type AskOptions } from './commands/ask.js';
 import { runClose } from './commands/close.js';
 import { runDemo } from './commands/demo.js';
 import { runList, type ListOptions } from './commands/list.js';
+import { runOpen, type OpenOptions } from './commands/open.js';
 import { runRemove, type RemoveOptions } from './commands/remove.js';
+import type { SendOptions } from './commands/client-command.js';
 import { runSend } from './commands/send.js';
 import { runServe } from './commands/serve.js';
 import { runSet, type SetOptions } from './commands/set.js';
 import { runUpdate } from './commands/update.js';
+import { MAX_SIZE, MIN_SIZE } from './launcher/placement.js';
 import { DESCRIPTION, VERSION } from './version.js';
 
 const program = new Command();
@@ -28,6 +31,9 @@ const ownerOption = () =>
     '--owner <id>',
     'widget owner (default: $A2UI_TERM_OWNER, then the host pane, for example "tmux:%3")',
   );
+
+const noOpenOption = () =>
+  new Option('--no-open', 'fail instead of opening the board when no renderer runs');
 
 const mineOption = () => new Option('--mine', "only the widgets of the caller's owner");
 
@@ -48,8 +54,35 @@ program
   .command('serve')
   .description('Run the renderer for a session in this terminal.')
   .addOption(sessionOption())
-  .action(async (options: { session?: string }) => {
+  .addOption(new Option('--launched', 'the renderer runs in a pane that open created').hideHelp())
+  .action(async (options: { session?: string; launched?: boolean }) => {
     process.exitCode = await runServe(options);
+  });
+
+program
+  .command('open')
+  .description('Open the board pane for the session, once, and print where it runs as JSON.')
+  .addOption(sessionOption())
+  .addOption(
+    new Option(
+      '--placement <placement>',
+      'split the caller pane or open a window (default: $A2UI_TERM_PLACEMENT, then "split")',
+    ),
+  )
+  .addOption(
+    new Option(
+      '--direction <direction>',
+      'where a split goes: right or down (default: $A2UI_TERM_DIRECTION, then "right")',
+    ),
+  )
+  .addOption(
+    new Option(
+      '--size <percent>',
+      `size of a split, ${MIN_SIZE} to ${MAX_SIZE} percent (default: $A2UI_TERM_SIZE, then 40)`,
+    ),
+  )
+  .action(async (options: OpenOptions) => {
+    process.exitCode = await runOpen(options);
   });
 
 program
@@ -58,7 +91,8 @@ program
   .argument(...inputArgument)
   .addOption(sessionOption())
   .addOption(clearOption())
-  .action(async (file: string | undefined, options: { session?: string; clear?: boolean }) => {
+  .addOption(noOpenOption())
+  .action(async (file: string | undefined, options: SendOptions) => {
     process.exitCode = await runSend(file, options);
   });
 
@@ -68,19 +102,15 @@ program
   .argument(...inputArgument)
   .addOption(sessionOption())
   .addOption(clearOption())
+  .addOption(noOpenOption())
   .addOption(
     new Option('--timeout <seconds>', 'give up after this many seconds (exit code 2)').argParser(
       parseSeconds,
     ),
   )
-  .action(
-    async (
-      file: string | undefined,
-      options: { session?: string; clear?: boolean; timeout?: number },
-    ) => {
-      process.exitCode = await runAsk(file, options);
-    },
-  );
+  .action(async (file: string | undefined, options: AskOptions) => {
+    process.exitCode = await runAsk(file, options);
+  });
 
 program
   .command('close')
@@ -102,6 +132,7 @@ program
   )
   .addOption(new Option('--title <text>', 'title in the top border of the widget'))
   .addOption(ownerOption())
+  .addOption(noOpenOption())
   .addOption(
     new Option(
       '--label <text>',
@@ -144,6 +175,7 @@ program
   .description('Remove widgets from the board and print the removed ids as JSON.')
   .argument('[widgetIds...]', 'ids that add printed')
   .addOption(mineOption())
+  .addOption(new Option('--ended', 'every widget whose owner pane is gone'))
   .addOption(ownerOption())
   .addOption(sessionOption())
   .action(async (widgetIds: string[], options: RemoveOptions) => {

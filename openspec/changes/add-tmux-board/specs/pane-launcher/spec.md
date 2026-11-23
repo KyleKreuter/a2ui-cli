@@ -33,7 +33,7 @@ Opens the board pane on demand, once per session, so that agents only need to ad
 - **THEN** `open` exits with code 1 after at most 5 seconds and the new pane is closed
 
 ### Requirement: Renderer command
-The board pane SHALL run the renderer with the same Node.js executable and the same a2ui-term entry script as the calling process, so that it also works when a2ui-term runs through `npx`.
+The board pane SHALL run the renderer with the same Node.js executable, the same Node.js flags and the same a2ui-term entry script as the calling process, so that it also works when a2ui-term runs through `npx`. The renderer SHALL record in the session state file that `open` created its pane.
 
 #### Scenario: Started through npx
 - **WHEN** the user runs `npx a2ui-term open`
@@ -58,11 +58,19 @@ The launcher and the widget commands SHALL never change the active pane after th
 - **THEN** the agent pane stays active
 
 ### Requirement: Close the board
-`close` SHALL stop the renderer as in M2 and SHALL then close the board pane through its host when the pane still exists.
+`close` SHALL stop the renderer as in M2 and SHALL then close the board pane through its host when `open` created the pane, the caller runs in the same host server as the renderer, and the pane still exists.
 
 #### Scenario: Pane stays after exit
 - **WHEN** tmux has `remain-on-exit` on and the user runs `a2ui-term close`
 - **THEN** the renderer stops and the board pane is closed
+
+#### Scenario: Renderer started by the user
+- **WHEN** the user started `a2ui-term serve` in a pane and runs `a2ui-term close`
+- **THEN** the renderer stops and the pane stays open
+
+#### Scenario: Caller in another tmux server
+- **WHEN** the board runs in one tmux server and the user runs `a2ui-term close` in another
+- **THEN** the renderer stops and a2ui-term runs no `kill-pane`
 
 ### Requirement: Fallback without a host
 When no usable host is found, `open` SHALL print the reason and the exact `a2ui-term serve --session <id>` command for another terminal on stderr, and SHALL exit with code 1.

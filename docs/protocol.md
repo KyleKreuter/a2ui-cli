@@ -17,11 +17,14 @@ Each session has one socket and one state file:
 
 The runtime directory has mode `0700`. a2ui-term refuses to use it when it belongs to another user or has broader permissions.
 
-The state file holds the renderer process id, the host name, the pane reference and the creation time:
+The state file holds the renderer process id, the host name, the pane reference and the creation time. When the renderer runs in a host pane, `hostInstance` names the host server, for example the tmux socket path. `launched` is `true` when `a2ui-term open` created the pane for the renderer:
 
+<!-- prettier-ignore -->
 ```json
-{ "pid": 4242, "host": "tmux", "paneRef": "%3", "createdAt": "2026-11-23T10:00:00.000Z" }
+{ "pid": 4242, "host": "tmux", "paneRef": "%9", "hostInstance": "/tmp/tmux-501/default", "launched": true, "createdAt": "2026-11-23T10:00:00.000Z" }
 ```
+
+`a2ui-term close` closes the pane only when `launched` is `true` and the caller runs in the same host server. A pane where the user started `serve` stays open.
 
 ### Session ids
 
@@ -53,21 +56,21 @@ Both directions use JSON Lines: one UTF-8 JSON object per line, terminated by `\
 
 A widget request has a string `id` that the client chooses, for example a UUID. The server answers the sender with exactly one reply or one `error` with the same `id`. The server handles the lines of one connection in order, so replies arrive in the order of the requests.
 
-| Request                                                                              | Reply                                               |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| `{"type":"add","id","messages",["width"],["title"],["owner"],["label"]}`             | `{"type":"added","id","widgetId":"w1"}`             |
-| `{"type":"update","id","widgetId","messages"}`                                       | `{"type":"updated","id"}`                           |
-| `{"type":"remove","id","widgetIds":["w1","w4"]}` or `{"type":"remove","id","owner"}` | `{"type":"removed","id","widgetIds":["w1","w4"]}`   |
-| `{"type":"list","id"}`                                                               | `{"type":"widgets","id","widgets":[<widget>, ...]}` |
+| Request                                                                                                                     | Reply                                               |
+| --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `{"type":"add","id","messages",["width"],["title"],["owner"],["label"]}`                                                    | `{"type":"added","id","widgetId":"w1"}`             |
+| `{"type":"update","id","widgetId","messages"}`                                                                              | `{"type":"updated","id"}`                           |
+| `{"type":"remove","id","widgetIds":["w1","w4"]}`, `{"type":"remove","id","owner"}` or `{"type":"remove","id","ended":true}` | `{"type":"removed","id","widgetIds":["w1","w4"]}`   |
+| `{"type":"list","id"}`                                                                                                      | `{"type":"widgets","id","widgets":[<widget>, ...]}` |
 
 - `messages` of `add` holds exactly one `createSurface` and then only `updateComponents` and `updateDataModel` messages for the same surface. The server replaces every `surfaceId` with the new widget id.
 - `messages` of `update` holds only `updateComponents` and `updateDataModel` messages. Their `surfaceId` does not matter.
 - `width` is a whole number of grid columns from 1 to 12. The default is 6.
 - `add` and `update` apply all messages or none. `remove` removes all named widgets or none.
-- `remove` with `owner` removes every widget of that owner and can remove none.
+- `remove` takes exactly one of `widgetIds`, `owner` and `ended`. With `owner` it removes every widget of that owner, with `ended` every ended widget. Both can remove none.
 - Widget ids are `w<number>`. The server never gives an id to a second widget, also not after `clear`.
 
-A `<widget>` in `widgets` has these fields. `title`, `label` and `owner` are `null` when the widget has none:
+A `<widget>` in `widgets` has these fields. `title`, `label` and `owner` are `null` when the widget has none. `ended` is `true` when the owner pane is gone, see [Ended widgets](#ended-widgets):
 
 ```json
 {
@@ -76,7 +79,8 @@ A `<widget>` in `widgets` has these fields. `title`, `label` and `owner` are `nu
   "label": "api-agent",
   "owner": "tmux:%3",
   "width": 6,
-  "position": 0
+  "position": 0,
+  "ended": false
 }
 ```
 
@@ -90,7 +94,11 @@ The owner is a string that names the agent of a widget. a2ui-term commands resol
 2. The `A2UI_TERM_OWNER` environment variable.
 3. The pane of a known host, as `<host>:<pane id>`: `TMUX_PANE` (`tmux:%3`), `ZELLIJ_PANE_ID` (`zellij:7`), `WEZTERM_PANE` (`wezterm:12`) or `KITTY_WINDOW_ID` (`kitty:4`), in this order.
 
-The label is `--label`, then `A2UI_TERM_LABEL`, then the owner. Clients of their own can send any owner and label strings.
+The label is `--label`, then `A2UI_TERM_LABEL`, then the host label of the caller pane (in tmux the window name and pane index, for example `api:1`), then the owner. Clients of their own can send any owner and label strings.
+
+### Ended widgets
+
+Every 2 seconds, the renderer checks the owner pane of each widget through the host that the owner prefix names, for example tmux for `tmux:%3`. When the pane is gone or its command has exited, the widgets of that owner are ended: the board shows them dimmed with the tag `ended`, and `list` reports `"ended": true`. Ended widgets stay ended and stay on the board until a client removes them. The renderer skips owners without a known host prefix, owners of a host without an adapter, and owners of a host whose program is not installed.
 
 ## Server messages
 

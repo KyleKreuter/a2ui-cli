@@ -20,6 +20,8 @@ export interface Widget {
   readonly title?: string;
   readonly label?: string;
   readonly owner?: string;
+  /** The owner pane is gone. The widget stays until `remove --ended`. */
+  readonly ended?: boolean;
   readonly surface: SurfaceModel;
 }
 
@@ -32,6 +34,7 @@ export interface WidgetInfo {
   readonly width: number;
   /** Index in board order, from 0. */
   readonly position: number;
+  readonly ended: boolean;
 }
 
 export interface AddRequest {
@@ -42,8 +45,9 @@ export interface AddRequest {
   readonly label?: string;
 }
 
-/** Which widgets `remove` removes: the named ones, or every widget of one owner. */
-export type RemoveTarget = { readonly widgetIds: readonly string[] } | { readonly owner: string };
+/** Which widgets `remove` removes: the named ones, every widget of one owner, or the ended ones. */
+export type RemoveTarget =
+  { readonly widgetIds: readonly string[] } | { readonly owner: string } | { readonly ended: true };
 
 export type BoardResult<T> =
   { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: string };
@@ -175,6 +179,8 @@ export class WidgetBoard {
     let ids: string[];
     if ('owner' in target) {
       ids = this.shown.filter((widget) => widget.owner === target.owner).map(({ id }) => id);
+    } else if ('ended' in target) {
+      ids = this.shown.filter((widget) => widget.ended).map(({ id }) => id);
     } else {
       ids = [...new Set(target.widgetIds)];
       const unknown = ids.find((id) => !this.details.has(id));
@@ -184,6 +190,28 @@ export class WidgetBoard {
     }
     this.runtime.apply(ids.map(deleteSurface));
     return { ok: true, value: ids };
+  }
+
+  /** The distinct owners of the widgets that have not ended, in board order. */
+  liveOwners(): string[] {
+    const owners = this.shown.flatMap((widget) =>
+      widget.owner && !widget.ended ? [widget.owner] : [],
+    );
+    return [...new Set(owners)];
+  }
+
+  /** Marks every widget of `owner` as ended. Ended widgets stay ended. */
+  markEnded(owner: string): void {
+    let changed = false;
+    for (const [id, details] of this.details) {
+      if (details.owner === owner && !details.ended) {
+        this.details.set(id, { ...details, ended: true });
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.changed();
+    }
   }
 
   /** Removes every widget. Widget ids keep counting up. */
@@ -199,6 +227,7 @@ export class WidgetBoard {
       owner: widget.owner ?? null,
       width: widget.width,
       position,
+      ended: widget.ended === true,
     }));
   }
 

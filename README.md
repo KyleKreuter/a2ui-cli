@@ -2,7 +2,7 @@
 
 A live [A2UI](https://a2ui.org) board next to your coding agents in the terminal. Agents, or any script, place widgets on it with shell commands: progress, results, charts and questions. Each widget gets an id, which the agent uses to update or remove it, and the user's answers come back as JSON.
 
-> **Status:** early development. Milestones M1 (local rendering with `a2ui-term demo`), M2 (`serve`, `send`, `ask`, `close`) and M3 (the widget board with `add`, `update`, `set`, `remove`, `list`) are implemented. The package is not on npm yet. The specs of the finished milestones live in [`openspec/specs/`](openspec/specs/), the plans for the next ones in [`openspec/changes/`](openspec/changes/).
+> **Status:** early development. Milestones M1 (local rendering with `a2ui-term demo`), M2 (`serve`, `send`, `ask`, `close`), M3 (the widget board with `add`, `update`, `set`, `remove`, `list`) and M4 (the board pane in tmux with `open`) are implemented. The package is not on npm yet. The specs of the finished milestones live in [`openspec/specs/`](openspec/specs/), the plans for the next ones in [`openspec/changes/`](openspec/changes/).
 
 ## Why a board
 
@@ -17,15 +17,16 @@ Available now:
 - `a2ui-term demo` renders A2UI messages from a file or stdin in the current terminal.
 - `a2ui-term serve` runs the board in its own terminal. Scripts send it UI with `a2ui-term send` and wait for the user's answer with `a2ui-term ask`, which prints the action as JSON.
 - The board shows all widgets in a 12-column grid and scrolls. `a2ui-term add` places a widget and prints its id; `update`, `set`, `remove` and `list` work with that id.
+- In tmux, the first `add`, `send` or `ask` opens the board in a pane next to the agent, without taking the focus. The board marks the widgets of agents whose pane has closed as ended.
 
 Planned (see [Roadmap](#roadmap)):
 
-- Opens the board in tmux the first time an agent needs it, without taking the focus, and marks the widgets of agents whose pane has closed.
+- Opens the board in Zellij, WezTerm and kitty too.
 - `ask` shows a question as a widget and returns only the answer to that widget. A history of the user's actions with `a2ui-term events` keeps answers after an agent's tool call has timed out. `a2ui-term guide` and an Agent Skill teach agents the interface.
 - Arrange widgets with the mouse: scroll with the wheel, drag a widget by its title, close it with `[×]`. A keyboard move mode does the same without a mouse.
 - Renders the whole A2UI 1.0 basic catalog: lists, tabs, modals, choices, sliders and icons.
 - Draws charts from the A2UI `VegaChart` component, for a subset of Vega-Lite.
-- Supports Zellij, WezTerm and kitty after tmux. Other hosts plug in as TOML files or external programs.
+- Other hosts plug in as TOML files or external programs.
 
 a2ui-term builds only on the official A2UI package `@a2ui/web_core` for protocol and state.
 
@@ -115,7 +116,7 @@ Save this message as `hi.jsonl` and run `a2ui-term demo hi.jsonl`:
 
 ## Ask the user from a script: `serve`, `send`, `ask`, `close`
 
-`serve` runs the board for a session in its own terminal. Other processes send it A2UI messages over a Unix domain socket and receive the user's actions. This works on macOS and Linux.
+`serve` runs the board for a session in its own terminal. Other processes send it A2UI messages over a Unix domain socket and receive the user's actions. This works on macOS and Linux. In tmux, `send` and `ask` open the board themselves, see [The board in tmux](#the-board-in-tmux-open).
 
 1. In a second terminal, start the renderer:
 
@@ -165,7 +166,7 @@ Without `--session`, the commands use `$A2UI_TERM_SESSION`, then `default`. So a
 
 Every agent places its own widgets on the shared board and gets an id back for each one. With that id, the agent changes or removes its widget later. The id stays valid until the widget is removed, and the board never gives it to another widget.
 
-1. In a second terminal, start the board:
+1. Outside tmux, start the board in a second terminal. In tmux, skip this step: `add` opens the board, see [The board in tmux](#the-board-in-tmux-open).
 
    ```bash
    a2ui-term serve
@@ -199,11 +200,11 @@ Every agent places its own widgets on the shared board and gets an id back for e
 
 | Command                                                       | Does                                                                                                                        |
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `add [file] [--width <1-12>] [--title] [--label]`             | Creates a widget from exactly one `createSurface` and its `updateComponents` and `updateDataModel` messages. Prints its id. |
+| `add [file] [--width <1-12>] [--title] [--label] [--no-open]` | Creates a widget from exactly one `createSurface` and its `updateComponents` and `updateDataModel` messages. Prints its id. |
 | `update <widgetId> [file]`                                    | Applies `updateComponents` and `updateDataModel` messages to the widget. It keeps its place on the board.                   |
 | `set <widgetId> <path> <value>... [--text] [--delete <path>]` | Sets values at JSON Pointer paths, for example `/percent`. `--delete` removes the value at a path and can repeat.           |
-| `remove <widgetId>...` or `remove --mine`                     | Removes the named widgets, or all widgets of the caller's owner. Prints the removed ids as JSON.                            |
-| `list [--mine]`                                               | Prints all widgets in board order as JSON, with id, title, label, owner, width and position.                                |
+| `remove <widgetId>...`, `remove --mine` or `remove --ended`   | Removes the named widgets, all widgets of the caller's owner, or all ended widgets. Prints the removed ids as JSON.         |
+| `list [--mine]`                                               | Prints all widgets in board order as JSON, with id, title, label, owner, width, position and ended state.                   |
 
 The surface id in the input of `add` does not matter: the board replaces it with the widget id. `add` and `update` apply all messages or none. When one message fails validation, the command exits with code 4 and the board stays as it was. The same is true for `remove` with an id that does not exist.
 
@@ -226,7 +227,7 @@ The grid has 12 columns, and a widget is 6 columns wide by default. Widgets fill
 
    tmux comes first, so tmux inside WezTerm or kitty gives a tmux owner.
 
-Without any of these, a widget has no owner, and `--mine` exits with code 1. The top border of a widget shows its title, its label and its id, for example `╭─ Build · api-agent · w3 ─╮`. The label is `--label`, then `A2UI_TERM_LABEL`, then the owner.
+Without any of these, a widget has no owner, and `--mine` exits with code 1. The top border of a widget shows its title, its label and its id, for example `╭─ Build · api-agent · w3 ─╮`. The label is `--label`, then `A2UI_TERM_LABEL`, then the tmux window name and pane index of the caller, for example `api:1`, then the owner.
 
 [`examples/board.sh`](examples/board.sh) plays one agent. Run it from two panes at the same time, or with two owners in one terminal:
 
@@ -234,12 +235,59 @@ Without any of these, a widget has no owner, and `--mine` exits with code 1. The
 A2UI_TERM_OWNER=api examples/board.sh API & A2UI_TERM_OWNER=web examples/board.sh Web & wait
 ```
 
+## The board in tmux: `open`
+
+In tmux, agents need no second terminal. The first `add`, `send` or `ask` of a session opens the board in a pane to the right of the agent's pane and keeps the focus in the agent's pane. Every later command uses that board, also from other panes, windows and tmux sessions.
+
+To open the board before the first widget, run `open`. It prints where the board runs as JSON:
+
+```bash
+a2ui-term open
+```
+
+```json
+{
+  "session": "default",
+  "socket": "/tmp/a2ui-term-501/default.sock",
+  "host": "tmux",
+  "paneId": "%9"
+}
+```
+
+When a renderer already runs for the session, `open` opens no pane and prints the same JSON.
+
+| Setting   | Flag                         | Environment variable  | Default |
+| --------- | ---------------------------- | --------------------- | ------- |
+| Placement | `--placement split\|window`  | `A2UI_TERM_PLACEMENT` | `split` |
+| Direction | `--direction right\|down`    | `A2UI_TERM_DIRECTION` | `right` |
+| Size      | `--size <percent>` (10 – 90) | `A2UI_TERM_SIZE`      | `40`    |
+
+`split` splits the agent's pane, and `window` gives the board a tmux window of its own named `a2ui`. Users with agents in several windows choose `window`. The automatic launch of `add`, `send` and `ask` takes the settings from the environment variables. With `--no-open`, these commands do not open the board and exit with code 1 when no renderer runs.
+
+Outside tmux, `open` and the automatic launch name the reason and the command for a second terminal, for example `a2ui-term serve --session default`, and exit with code 1. Support for Zellij, WezTerm and kitty follows in the next milestone.
+
+`close` stops the renderer and closes the board pane, also when tmux keeps panes after their command exits (`remain-on-exit`). A pane in which you started `serve` yourself stays open.
+
+### Ended widgets
+
+When the pane of an agent closes, or its command exits, the board marks the widgets of that agent within 3 seconds: they show dimmed with the tag `ended`, for example `╭─ Build · api:1 · w3 · ended ─╮`. The board keeps them, because a result can still be useful. Remove all ended widgets with:
+
+```bash
+a2ui-term remove --ended
+```
+
+```json
+{ "removed": ["w1", "w4"] }
+```
+
+The board checks only owners of the form `tmux:<pane>`. Widgets with other owners never end.
+
 ## Exit codes
 
 | Code | Meaning                                                                                                                                                   |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0`  | Success.                                                                                                                                                  |
-| `1`  | Error, for example no renderer runs for the session, an invalid flag, or `--mine` without an owner.                                                       |
+| `1`  | Error, for example no renderer runs and none can be opened, an invalid flag, a failed tmux command, or `--mine` without an owner.                         |
 | `2`  | `ask` got no action before `--timeout`.                                                                                                                   |
 | `3`  | The user closed the renderer while `ask` waited.                                                                                                          |
 | `4`  | The input is not valid JSON Lines or JSON, or the renderer rejected an A2UI message or a widget request, for example for a widget id that does not exist. |
@@ -266,12 +314,13 @@ Each milestone is one OpenSpec change with a proposal, specs, a design and tasks
 | M2        | [`add-pane-server`](openspec/changes/archive/2026-11-23-add-pane-server/)         | Sessions, socket protocol, `serve`, `send`, `ask`, `close`                                 |
 | M3        | [`add-widget-board`](openspec/changes/archive/2026-11-23-add-widget-board/)       | Shared board with a 12-column grid and scrolling, `add`, `update`, `set`, `remove`, `list` |
 | M4        | [`add-tmux-board`](openspec/changes/add-tmux-board/)                              | Board pane in tmux, `open`, automatic launch, ended widgets                                |
-| M5        | [`add-agent-workflow`](openspec/changes/add-agent-workflow/)                      | `ask` on widgets, action history with `events`, `guide`, Agent Skill, `doctor`             |
-| M6        | [`add-mouse-arrangement`](openspec/changes/add-mouse-arrangement/)                | Mouse wheel, clicks, drag to arrange, close mark, keyboard move mode                       |
-| M7        | [`extend-basic-catalog`](openspec/changes/extend-basic-catalog/)                  | Remaining basic catalog components, stable focus, help overlay                             |
-| M8        | [`add-terminal-charts`](openspec/changes/add-terminal-charts/)                    | `VegaChart` with a Vega-Lite subset, live chart updates                                    |
-| M9        | [`prepare-release`](openspec/changes/prepare-release/)                            | License, package contents, changelog, npm release with provenance                          |
-| M10       | [`add-more-hosts`](openspec/changes/add-more-hosts/)                              | Zellij, WezTerm, kitty, TOML and external adapters, `hosts`, configuration file            |
+| M5        | [`add-terminal-hosts`](openspec/changes/add-terminal-hosts/)                      | Board pane in Zellij, WezTerm and kitty                                                    |
+| M6        | [`add-agent-workflow`](openspec/changes/add-agent-workflow/)                      | `ask` on widgets, action history with `events`, `guide`, Agent Skill, `doctor`             |
+| M7        | [`add-mouse-arrangement`](openspec/changes/add-mouse-arrangement/)                | Mouse wheel, clicks, drag to arrange, close mark, keyboard move mode                       |
+| M8        | [`extend-basic-catalog`](openspec/changes/extend-basic-catalog/)                  | Remaining basic catalog components, stable focus, help overlay                             |
+| M9        | [`add-terminal-charts`](openspec/changes/add-terminal-charts/)                    | `VegaChart` with a Vega-Lite subset, live chart updates                                    |
+| M10       | [`prepare-release`](openspec/changes/prepare-release/)                            | License, package contents, changelog, npm release with provenance                          |
+| M11       | [`add-more-hosts`](openspec/changes/add-more-hosts/)                              | TOML and external host adapters, host priorities, `hosts`, configuration file              |
 
 ## Development
 
@@ -285,6 +334,7 @@ npm run dev -- demo examples/hello.jsonl
 | `npm run dev -- <cmd>` | Runs the CLI from `src/` with `tsx`   |
 | `npm run build`        | Bundles `src/cli.ts` to `dist/cli.js` |
 | `npm test`             | Runs the tests with Vitest            |
+| `npm run test:tmux`    | Runs the smoke test with a real tmux  |
 | `npm run typecheck`    | Type-checks with `tsc`                |
 | `npm run lint`         | Lints with ESLint                     |
 | `npm run format`       | Formats with Prettier                 |

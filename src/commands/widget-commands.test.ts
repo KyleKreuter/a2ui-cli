@@ -35,7 +35,7 @@ const session = { session: 't' };
 const example = (name: string) => join(import.meta.dirname, '..', '..', 'examples', name);
 
 async function board(columns = 100) {
-  serve = await startServe(tmp.dir, columns);
+  serve = await startServe(tmp.dir, { columns });
   return serve;
 }
 
@@ -304,8 +304,17 @@ describe('list', () => {
           owner: 'tmux:%3',
           width: 4,
           position: 0,
+          ended: false,
         },
-        { widgetId: 'w2', title: null, label: null, owner: null, width: 6, position: 1 },
+        {
+          widgetId: 'w2',
+          title: null,
+          label: null,
+          owner: null,
+          width: 6,
+          position: 1,
+          ended: false,
+        },
       ],
     });
   });

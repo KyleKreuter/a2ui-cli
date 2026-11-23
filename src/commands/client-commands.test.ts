@@ -207,7 +207,8 @@ describe('client commands without a renderer', () => {
         't',
         input('ok.jsonl', confirmSurface),
       ],
-      { env: { ...process.env, XDG_RUNTIME_DIR: tmp.dir } },
+      // Without TMUX, send cannot open a board pane.
+      { env: { ...process.env, TMUX: '', XDG_RUNTIME_DIR: tmp.dir } },
     ).catch((failure: unknown) => failure as { code: number; stderr: string });
     expect(error).toMatchObject({ code: 1 });
     expect((error as { stderr: string }).stderr).toContain('no renderer runs for session "t"');

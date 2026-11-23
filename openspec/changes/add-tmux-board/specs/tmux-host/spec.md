@@ -25,22 +25,44 @@ The tmux adapter SHALL be usable when `TMUX` and `TMUX_PANE` are set and `tmux` 
 - **THEN** the tmux adapter is not usable, with the reason that `tmux` is not on `PATH`
 
 ### Requirement: Open commands
-For placement `split`, the tmux adapter SHALL run `tmux split-window -d`, `-h` for `right` or `-v` for `down`, `-l <size>%`, `-t <caller pane>`, `-P -F #{pane_id}`, followed by the renderer command as separate arguments. For placement `window`, it SHALL run `tmux new-window -d -n a2ui -P -F #{pane_id}` followed by the renderer command. It SHALL use the trimmed stdout as the pane id.
+For placement `split`, the tmux adapter SHALL run `tmux split-window -d`, `-h` for `right` or `-v` for `down`, `-l <size>%`, `-t <caller pane>`, the pane setup arguments and `-P -F #{pane_id}`, followed by the renderer command as separate arguments. For placement `window`, it SHALL run `tmux new-window -d -n a2ui`, the pane setup arguments and `-P -F #{pane_id}`, followed by the renderer command. It SHALL use the trimmed stdout as the pane id.
 
 #### Scenario: Board to the right
 - **WHEN** the adapter opens a split to the right of `%3` with size 40
-- **THEN** it runs `tmux split-window -d -h -l 40% -t %3 -P -F #{pane_id}` followed by the renderer arguments
+- **THEN** it runs `tmux split-window -d -h -l 40% -t %3 -c <working directory> -P -F #{pane_id}` followed by the renderer arguments
 
 #### Scenario: Board window
 - **WHEN** the adapter opens the board with placement `window`
-- **THEN** it runs `tmux new-window -d -n a2ui -P -F #{pane_id}` followed by the renderer arguments
+- **THEN** it runs `tmux new-window -d -n a2ui -c <working directory> -P -F #{pane_id}` followed by the renderer arguments
 
-### Requirement: Check, label and close commands
-The tmux adapter SHALL check whether a pane exists with `tmux display-message -p -t <pane> #{pane_id}`, SHALL read a label with `tmux display-message -p -t <pane> #{window_name}:#{pane_index}`, and SHALL close a pane with `tmux kill-pane -t <pane>`.
+### Requirement: Pane setup
+The pane setup arguments SHALL be `-c <working directory of the caller>` and one `-e NAME=VALUE` for each of `XDG_RUNTIME_DIR` and `TMPDIR` that the caller has set, because a new pane gets the environment of the tmux server.
+
+#### Scenario: Runtime directory in the new pane
+- **WHEN** the caller has `XDG_RUNTIME_DIR=/run/user/1000` and the adapter opens the board
+- **THEN** the command contains `-e XDG_RUNTIME_DIR=/run/user/1000` before `-P`
+
+### Requirement: Pane state command
+The tmux adapter SHALL read the state of a pane with `tmux display-message -p -t <pane> '#{pane_id} #{pane_dead}'`. It SHALL report the pane as missing when the first field of the output is not the requested pane id or when the command fails with `can't find` in stderr, as dead when `#{pane_dead}` is `1`, as live otherwise, and as unknown on any other failure or a timeout.
 
 #### Scenario: Pane is gone
-- **WHEN** `tmux display-message -p -t %7 #{pane_id}` exits with a non-zero code
-- **THEN** the adapter reports that pane `%7` does not exist
+- **WHEN** tmux 3.8 prints an empty line for `tmux display-message -p -t %7 '#{pane_id} #{pane_dead}'` and exits with 0
+- **THEN** the adapter reports that pane `%7` is missing
+
+#### Scenario: Command of the pane exited
+- **WHEN** tmux prints `%7 1`
+- **THEN** the adapter reports that pane `%7` is dead
+
+#### Scenario: No tmux server
+- **WHEN** the command fails with `no server running`
+- **THEN** the adapter reports the state of pane `%7` as unknown
+
+### Requirement: Label and close commands
+The tmux adapter SHALL read a label with `tmux display-message -p -t <pane> '#{pane_id} #{window_name}:#{pane_index}'` and use the text after the pane id, and SHALL close a pane with `tmux kill-pane -t <pane>`. A `kill-pane` failure for a pane that is missing afterwards SHALL count as success.
+
+#### Scenario: Label of a pane
+- **WHEN** tmux prints `%3 api:1` for the label command of pane `%3`
+- **THEN** the label is `api:1`
 
 ### Requirement: No shell execution
 a2ui-term SHALL start every tmux command directly with an argument vector, SHALL never pass it through a shell, and SHALL give the renderer command to tmux as separate arguments.
